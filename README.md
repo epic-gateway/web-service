@@ -1,10 +1,3 @@
-# egw
+# EGW Web Service
 
-EGW infrastructure project
-
-## Repository Structure
-
-| Directory              | Description                               |
-| ---------------------- | ----------------------------------------- |
-| roles                  | Ansible playbook                          |
-| web                    | EGW web service                           |
+Run "make" to get a list of targets.

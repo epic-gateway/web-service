@@ -1,7 +1,7 @@
 .DEFAULT_GOAL:=help
 SHELL:=/bin/bash
 
-TAG=registry.gitlab.com/acnodal/egw/controller:${USER}-dev
+TAG=registry.gitlab.com/acnodal/egw-web-service/web-service:${USER}-dev
 
 ##@ Development
 
