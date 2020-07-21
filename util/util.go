@@ -1,6 +1,7 @@
 package util
 
 import (
+	"encoding/json"
 	"io"
 	"io/ioutil"
 	"log"
@@ -17,7 +18,18 @@ func DumpBytes(label string, bytes io.Reader) error {
 	return err
 }
 
-func RespondJson(w http.ResponseWriter, payload string) {
+func RespondJson(w http.ResponseWriter, payload interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	bytes, err := json.Marshal(payload)
+	if err != nil {
+		RespondError(w)
+	} else {
+		w.WriteHeader(http.StatusOK)
+		w.Write(bytes)
+	}
+}
+
+func RespondJsonString(w http.ResponseWriter, payload string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(payload))

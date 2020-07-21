@@ -42,7 +42,7 @@ func createService(w http.ResponseWriter, r *http.Request) {
 	} else {
 		svcid := 42
 		fmt.Printf("POST service created %#v\n", body)
-		util.RespondJson(w, fmt.Sprintf(`{"group": {"id": "%s"}, "service": {"id": "%d", "self": "%s%d/", "endpoints": "%s%d/endpoints/"}}`, body.Group.ID, svcid, r.RequestURI, svcid, r.RequestURI, svcid))
+		util.RespondJsonString(w, fmt.Sprintf(`{"group": {"id": "%s"}, "service": {"id": "%d", "self": "%s%d/", "endpoints": "%s%d/endpoints/"}}`, body.Group.ID, svcid, r.RequestURI, svcid, r.RequestURI, svcid))
 	}
 }
 
@@ -55,7 +55,7 @@ func createEndpoint(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		svcid := vars["svcid"]
 		fmt.Printf("POST endpoint created %#v\n", body)
-		util.RespondJson(w, fmt.Sprintf(`{"group": {"id": "%s"}, "service": {"id": "%s"}}`, body.Group.ID, svcid))
+		util.RespondJsonString(w, fmt.Sprintf(`{"group": {"id": "%s"}, "service": {"id": "%s"}}`, body.Group.ID, svcid))
 	}
 }
 
