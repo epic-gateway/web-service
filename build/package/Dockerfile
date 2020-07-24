@@ -24,4 +24,4 @@ WORKDIR /usr/local/share/egw-ws
 COPY ./db ./db/
 
 EXPOSE 8080
-CMD ["/usr/local/bin/egw-ws"]
+CMD ["/usr/local/bin/egw-ws", "--debug"]
