@@ -1,9 +1,9 @@
 FROM golang:alpine as builder
 
 # build the web service
-WORKDIR /usr/src/egw-web-service
+WORKDIR /usr/src/egw-ws
 COPY . ./
-RUN go build -o /usr/local/bin/web-service main.go
+RUN go build -o /usr/local/bin/ ./cmd/egw-ws
 
 # download golang-migrate
 RUN apk add curl
@@ -17,11 +17,11 @@ FROM alpine
 RUN apk add postgresql-client
 WORKDIR /usr/local/bin
 COPY --from=builder /usr/local/bin/migrate.linux-amd64 ./migrate
-COPY --from=builder /usr/local/bin/web-service ./
+COPY --from=builder /usr/local/bin/egw-ws ./
 
 # copy db migration scripts
-WORKDIR /usr/local/share/egw/web-service
+WORKDIR /usr/local/share/egw-ws
 COPY ./db ./db/
 
 EXPOSE 8080
-CMD ["/usr/local/bin/web-service"]
+CMD ["/usr/local/bin/egw-ws"]

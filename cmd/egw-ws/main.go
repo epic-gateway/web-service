@@ -9,8 +9,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v4/pgxpool"
 
-	"acnodal.io/egw/web/egw"
-	"acnodal.io/egw/web/ipam"
+	"acnodal.io/egw-ws/internal/egw"
+	"acnodal.io/egw-ws/internal/ipam"
 )
 
 func main() {

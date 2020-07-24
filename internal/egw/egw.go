@@ -7,7 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"acnodal.io/egw/web/util"
+	"acnodal.io/egw-ws/internal/util"
 )
 
 type Group struct {

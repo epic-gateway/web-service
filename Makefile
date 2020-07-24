@@ -2,14 +2,15 @@
 SHELL:=/bin/bash
 
 TAG=registry.gitlab.com/acnodal/egw-web-service/web-service:${USER}-dev
+DOCKERFILE=build/package/Dockerfile
 
 ##@ Development
 
 run: ## Run the service using "go run"
-	go run main.go
+	go run ./cmd/egw-ws
 
 image: ## Build the Docker image
-	docker build --tag=${TAG} .
+	docker build --file=${DOCKERFILE} --tag=${TAG} .
 
 runimage: image ## Run the service using "docker run"
 	docker run --rm --publish 8080:8080 ${TAG}

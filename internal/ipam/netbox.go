@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v4/pgxpool"
 
-	"acnodal.io/egw/web/util"
+	"acnodal.io/egw-ws/internal/util"
 )
 
 type Address struct {
