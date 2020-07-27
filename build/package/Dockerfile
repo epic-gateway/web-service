@@ -14,7 +14,7 @@ RUN curl -sL https://github.com/golang-migrate/migrate/releases/download/v4.11.0
 FROM alpine
 
 # install executables
-RUN apk add postgresql-client
+RUN apk add postgresql-client busybox-extras
 WORKDIR /usr/local/bin
 COPY --from=builder /usr/local/bin/migrate.linux-amd64 ./migrate
 COPY --from=builder /usr/local/bin/egw-ws ./
