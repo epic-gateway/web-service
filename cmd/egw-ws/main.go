@@ -48,7 +48,7 @@ func main() {
 	// run the EGW web service in the foreground
 	r := mux.NewRouter()
 	ipam.SetupRoutes(r, "/api/ipam", pool)
-	egw.SetupRoutes(r, "/api/egw")
+	egw.SetupRoutes(r, "/api/egw", pool)
 	http.Handle("/", r)
 	port := fmt.Sprintf(":%d", wsPort)
 	log.Printf("web service listening on %s", port)
