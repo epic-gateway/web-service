@@ -11,12 +11,13 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 
 	"acnodal.io/egw-ws/internal/egw/db"
-	"acnodal.io/egw-ws/internal/egw/model"
+	"acnodal.io/egw-ws/internal/model"
 	"acnodal.io/egw-ws/internal/util"
 )
 
 type EGW struct {
 	db *pgxpool.Pool
+	cb model.Callbacks
 }
 
 type ServiceCreateRequest struct {
@@ -80,6 +81,9 @@ func (g *EGW) createEndpoint(w http.ResponseWriter, r *http.Request) {
 				fmt.Printf("POST endpoint created %#v\n", body)
 				http.Redirect(w, r, fmt.Sprintf("/api/egw/endpoints/%v", epid), http.StatusFound)
 
+				// Update the xDS cache
+				go g.notify(svcid)
+
 				return
 			}
 		}
@@ -121,12 +125,21 @@ func (g *EGW) showGroup(w http.ResponseWriter, r *http.Request) {
 	util.RespondError(w)
 }
 
-func NewEGW(pool *pgxpool.Pool) *EGW {
-	return &EGW{db: pool}
+func (g *EGW) notify(svcid uuid.UUID) {
+	ctx := context.Background()
+	service, svcerr := db.ReadService(ctx, g.db, svcid)
+	endpoints, eperr := db.ReadServiceEndpoints(ctx, g.db, svcid)
+	if svcerr == nil && eperr == nil {
+		g.cb.ServiceChanged(service, endpoints)
+	}
 }
 
-func SetupRoutes(router *mux.Router, prefix string, pool *pgxpool.Pool) {
-	egw := NewEGW(pool)
+func NewEGW(pool *pgxpool.Pool, callbacks model.Callbacks) *EGW {
+	return &EGW{db: pool, cb: callbacks}
+}
+
+func SetupRoutes(router *mux.Router, prefix string, pool *pgxpool.Pool, callbacks model.Callbacks) {
+	egw := NewEGW(pool, callbacks)
 	egw_router := router.PathPrefix(prefix).Subrouter()
 	egw_router.HandleFunc("/endpoints/{id}", egw.showEndpoint).Methods(http.MethodGet)
 	egw_router.HandleFunc("/services/{id}/endpoints", egw.createEndpoint).Methods(http.MethodPost)
