@@ -2,6 +2,7 @@ package ipam
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net"
 	"net/http"
@@ -73,19 +74,31 @@ func (ipam *IPAM) patchAddress(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
-	newStatus := r.FormValue("status")
-	if err != nil || newStatus == "" {
-		log.Println("status not provided")
-		util.RespondError(w)
+	if err != nil {
+		log.Println("id not provided")
 	} else {
-		err := ipam.updateAddress(ctx, id, newStatus)
+		params := map[string]string{}
+		err = json.NewDecoder(r.Body).Decode(&params)
 		if err != nil {
-			log.Println(err)
-			util.RespondError(w)
+			log.Println("can't parse input")
 		} else {
-			w.WriteHeader(http.StatusOK)
+			newStatus := params["status"]
+			if newStatus == "" {
+				log.Println("status not provided")
+			} else {
+				err := ipam.updateAddress(ctx, id, newStatus)
+				if err != nil {
+					log.Println(err)
+					util.RespondError(w)
+					return
+				} else {
+					w.WriteHeader(http.StatusOK)
+					return
+				}
+			}
 		}
 	}
+	util.RespondBad(w)
 }
 
 func NewIPAM(pool *pgxpool.Pool) (*IPAM) {
