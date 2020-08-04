@@ -23,5 +23,8 @@ COPY --from=builder /usr/local/bin/egw-ws ./
 WORKDIR /usr/local/share/egw-ws
 COPY ./db ./db/
 
+# copy PFC components from the PFC docker image
+COPY --from=registry.gitlab.com/acnodal/packet-forwarding-component/pfc:demo202008031754 /tmp/.acnodal/bin/* /usr/local/bin/
+
 EXPOSE 8080
 CMD ["/usr/local/bin/egw-ws", "--debug"]
