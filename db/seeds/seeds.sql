@@ -1,7 +1,7 @@
 INSERT INTO tenancy_tenant
 (id, name, slug, description, comments)
 VALUES
-(1, 'IPAM MetalLB Customer EXP', 'ipam-metallb-customer-exp', 'For experimentation with MetalLB as an IPAM client', '')
+(1, 'IPAM PureLB Customer EXP', 'ipam-purelb-customer-exp', 'For experimentation with PureLB as an IPAM client', '')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO ipam_ipaddress
