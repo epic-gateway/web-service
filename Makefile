@@ -4,13 +4,17 @@ SHELL:=/bin/bash
 TAG=registry.gitlab.com/acnodal/egw-web-service/web-service:${USER}-dev
 DOCKERFILE=build/package/Dockerfile
 
+ifndef GITLAB_TOKEN
+$(error GITLAB_TOKEN not set. It must contain a gitlab Personal Access Token with repo read access)
+endif
+
 ##@ Development
 
 run: ## Run the service using "go run"
 	go run ./cmd/egw-ws --debug
 
 image: ## Build the Docker image
-	docker build --file=${DOCKERFILE} --tag=${TAG} .
+	@docker build --build-arg=GITLAB_TOKEN --file=${DOCKERFILE} --tag=${TAG} .
 
 runimage: image ## Run the service using "docker run"
 	docker run --rm --env=DATABASE_URL --env=PGPASSWORD --publish=8080:8080 --publish=18000:18000 ${TAG}

@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v4/pgxpool"
+	egwv1 "gitlab.com/acnodal/egw-resource-model/api/v1"
 
 	"acnodal.io/egw-ws/internal/egw/db"
 	"acnodal.io/egw-ws/internal/model"
@@ -28,6 +29,10 @@ type EndpointCreateRequest struct {
 }
 
 func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
+	var group egwv1.ServiceGroup = egwv1.ServiceGroup{}
+
+	fmt.Printf("%+q", group)
+
 	vars := mux.Vars(r)
 	grpid, err := uuid.Parse(vars["id"])
 	if err == nil {
