@@ -40,4 +40,4 @@ COPY ./db ./db/
 COPY --from=registry.gitlab.com/acnodal/packet-forwarding-component/pfc:demo202008031754 /tmp/.acnodal/bin/* /usr/local/bin/
 
 EXPOSE 8080
-CMD ["/usr/local/bin/egw-ws", "--debug"]
+CMD ["/usr/local/bin/egw-ws"]
