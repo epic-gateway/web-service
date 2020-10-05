@@ -12,7 +12,7 @@ WORKDIR /usr/src/egw-ws
 COPY . ./
 
 # build the web service (static)
-RUN go build  -tags 'osusergo netgo' -o /usr/local/bin/ ./cmd/egw-ws
+RUN go build  -tags 'osusergo netgo' -o /usr/local/bin/egw-ws main.go
 
 # download golang-migrate
 RUN apk add curl

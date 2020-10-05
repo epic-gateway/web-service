@@ -13,9 +13,3 @@ VALUES
 (4, '172.30.254.5/32', 'seeded', 1, 'reserved', '', ''),
 (5, '172.30.254.6/32', 'seeded', 1, 'reserved', '', '')
 ON CONFLICT DO NOTHING;
-
-INSERT INTO groups
-(id, name)
-VALUES
-('b321256d-31b7-4209-bd76-28dec3c77c25', 'acnodal-test')
-ON CONFLICT DO NOTHING;
