@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 
 	"github.com/gorilla/mux"
 	egwv1 "gitlab.com/acnodal/egw-resource-model/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"acnodal.io/egw-ws/internal/allocator"
 	"acnodal.io/egw-ws/internal/egw/db"
 	"acnodal.io/egw-ws/internal/model"
 	"acnodal.io/egw-ws/internal/util"
@@ -17,7 +19,8 @@ import (
 
 // EGW implements the server side of the EGW web service protocol.
 type EGW struct {
-	client client.Client
+	client    client.Client
+	allocator *allocator.Allocator
 }
 
 // ServiceCreateRequest contains the data from a web service request
@@ -32,6 +35,9 @@ type EndpointCreateRequest struct {
 	Endpoint egwv1.LoadBalancerEndpoint
 }
 
+// createService handles PureLB service announcements. They're sent
+// from the EGW pool in the allocator, so we need to allocate and
+// return the LB address.
 func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
 	var (
 		err error
@@ -41,16 +47,22 @@ func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
 	var body ServiceCreateRequest
 	err = json.NewDecoder(r.Body).Decode(&body)
 	if err == nil {
-		// make sure that the link to the owning service group is set
-		body.Service.Spec.ServiceGroup = vars["group"]
+		var addr net.IP
 
-		fmt.Printf("%+v\n", body)
-
-		err = db.CreateService(context.Background(), g.client, vars["account"], body.Service)
+		// allocate a public IP address for the service
+		_, addr, err = g.allocator.Allocate(body.Service.Name, []allocator.Port{{Proto: "tcp", Port: body.Service.Spec.PublicPorts[0]}}, "")
 		if err == nil {
-			fmt.Printf("POST service created %v %#v\n", vars["account"], body.Service)
-			http.Redirect(w, r, fmt.Sprintf("/api/egw/accounts/%v/services/%v", vars["account"], body.Service.ObjectMeta.Name), http.StatusFound)
-			return
+			body.Service.Spec.PublicAddress = addr.String()
+
+			// make sure that the link to the owning service group is set
+			body.Service.Spec.ServiceGroup = vars["group"]
+
+			err = db.CreateService(context.Background(), g.client, vars["account"], body.Service)
+			if err == nil {
+				fmt.Printf("POST service created %v %#v\n", vars["account"], body.Service)
+				http.Redirect(w, r, fmt.Sprintf("/api/egw/accounts/%v/services/%v", vars["account"], body.Service.ObjectMeta.Name), http.StatusFound)
+				return
+			}
 		}
 	}
 	fmt.Printf("POST service failed %#v\n", err)
@@ -104,14 +116,14 @@ func (g *EGW) showGroup(w http.ResponseWriter, r *http.Request) {
 }
 
 // NewEGW configures a new EGW web service instance.
-func NewEGW(client client.Client) *EGW {
-	return &EGW{client: client}
+func NewEGW(client client.Client, allocator *allocator.Allocator) *EGW {
+	return &EGW{client: client, allocator: allocator}
 }
 
 // SetupRoutes sets up the provided mux.Router to handle the EGW web
 // service routes.
-func SetupRoutes(router *mux.Router, prefix string, client client.Client) {
-	egw := NewEGW(client)
+func SetupRoutes(router *mux.Router, prefix string, client client.Client, allocator *allocator.Allocator) {
+	egw := NewEGW(client, allocator)
 	egwRouter := router.PathPrefix(prefix).Subrouter()
 	egwRouter.HandleFunc("/accounts/{account}/services/{service}/endpoints", egw.createServiceEndpoint).Methods(http.MethodPost)
 	egwRouter.HandleFunc("/accounts/{account}/services/{service}", egw.showService).Methods(http.MethodGet)

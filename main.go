@@ -1,14 +1,12 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/gorilla/mux"
-	"github.com/jackc/pgx/v4/pgxpool"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -16,8 +14,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	"acnodal.io/egw-ws/internal/allocator"
+	"acnodal.io/egw-ws/internal/controllers"
 	"acnodal.io/egw-ws/internal/egw"
-	"acnodal.io/egw-ws/internal/ipam"
 
 	egwv1 "gitlab.com/acnodal/egw-resource-model/api/v1"
 	// +kubebuilder:scaffold:imports
@@ -32,6 +31,17 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(egwv1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
+}
+
+type callbacks struct {
+	allocator *allocator.Allocator
+}
+
+func (cb callbacks) ServicePrefixChanged(prefix *egwv1.ServicePrefix) error {
+	if err := cb.allocator.SetPools([]*egwv1.ServicePrefix{prefix}); err != nil {
+		log.Fatal(err)
+	}
+	return nil
 }
 
 func main() {
@@ -59,23 +69,39 @@ func main() {
 
 	// +kubebuilder:scaffold:builder
 
-	ctx := context.Background()
-	pool, err := pgxpool.Connect(ctx, os.Getenv("DATABASE_URL"))
-	if err != nil {
-		log.Fatal(err)
+	// set up address allocator
+	allocator := allocator.NewAllocator()
+
+	callbacks := callbacks{
+		allocator: allocator,
 	}
-	defer pool.Close()
 
 	// set up web service
 	setupLog.Info("starting web service")
 	r := mux.NewRouter()
-	ipam.SetupRoutes(r, "/api/ipam", pool)
-	egw.SetupRoutes(r, "/api/egw", mgr.GetClient())
+	egw.SetupRoutes(r, "/api/egw", mgr.GetClient(), allocator)
 
 	http.Handle("/", r)
 	go http.ListenAndServe(":8080", nil)
 
 	// launch manager
+	if err = (&controllers.LoadBalancerReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("LoadBalancer"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "LoadBalancer")
+		os.Exit(1)
+	}
+	if err = (&controllers.ServicePrefixReconciler{
+		Client:    mgr.GetClient(),
+		Log:       ctrl.Log.WithName("controllers").WithName("ServicePrefix"),
+		Callbacks: callbacks,
+		Scheme:    mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ServicePrefix")
+		os.Exit(1)
+	}
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")

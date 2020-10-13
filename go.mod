@@ -3,16 +3,14 @@ module acnodal.io/egw-ws
 go 1.14
 
 require (
-	github.com/docker/distribution v2.7.1+incompatible // indirect
-	github.com/docker/docker v0.7.3-0.20190327010347-be7ac8be2ae0
-	github.com/docker/go-connections v0.4.0 // indirect
-	github.com/google/uuid v1.1.1
+	github.com/go-logr/logr v0.1.0
 	github.com/gorilla/mux v1.7.4
-	github.com/jackc/pgx/v4 v4.7.2
-	github.com/morikuni/aec v1.0.0 // indirect
-	github.com/opencontainers/go-digest v1.0.0 // indirect
-	github.com/opencontainers/image-spec v1.0.1 // indirect
-	gitlab.com/acnodal/egw-resource-model v0.1.0-pre6
+	github.com/prometheus/client_golang v1.0.0
+	github.com/stretchr/testify v1.5.1
+	gitlab.com/acnodal/egw-resource-model v0.1.1-pre1
+	go.uber.org/multierr v1.5.0 // indirect
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
+	k8s.io/api v0.18.6
 	k8s.io/apimachinery v0.18.6
 	k8s.io/client-go v0.18.6
 	sigs.k8s.io/controller-runtime v0.6.2
