@@ -1,77 +1,38 @@
 package model
 
 import (
-	"database/sql"
-
-	"github.com/google/uuid"
+	egwv1 "gitlab.com/acnodal/egw-resource-model/api/v1"
 )
 
+// Links is a map of URL links from this object to others. Keys are
+// strings like "self" or "group" or "service", and values are URL
+// strings.
 type Links map[string]string
 
+// Group represents a Service Group on the wire.
 type Group struct {
-	Links   Links  `json:"link"`
-	Name    string `json:"name"`
-	Created *Time  `json:"created"`
-	Updated *Time  `json:"updated"`
+	Links Links              `json:"link"`
+	Group egwv1.ServiceGroup `json:"group"`
 }
 
+// NewGroup configures a new Group instance.
 func NewGroup() Group {
 	return Group{
-		// initialize times so we can Scan() from the db
-		Created: NewTime(),
-		Updated: NewTime(),
+		Links: Links{},
+		Group: egwv1.ServiceGroup{},
 	}
 }
 
+// Service represents a load balancer service on the wire.
 type Service struct {
-	Links   Links     `json:"link"`
-	Name    string    `json:"name"`
-	Address string    `json:"address"`
-	GroupID uuid.UUID `json:"-"`
-	Created *Time     `json:"created"`
-	Updated *Time     `json:"updated"`
+	Links   Links              `json:"link"`
+	Service egwv1.LoadBalancer `json:"service"`
 }
 
+// NewService configures a new Service instance.
 func NewService() Service {
 	return Service{
-		// initialize times so we can Scan() from the db
-		Created: NewTime(),
-		Updated: NewTime(),
+		Links:   Links{},
+		Service: egwv1.LoadBalancer{},
 	}
-}
-
-type Endpoint struct {
-	Links     Links     `json:"link"`
-	Address   string    `json:"address"`
-	Port      int       `json:"port"`
-	ServiceID uuid.UUID `json:"-"`
-	Created   *Time     `json:"created"`
-	Updated   *Time     `json:"updated"`
-}
-
-func NewEndpoint() Endpoint {
-	return Endpoint{
-		// initialize times so we can Scan() from the db
-		Created: NewTime(),
-		Updated: NewTime(),
-	}
-}
-
-type Callbacks interface {
-	ServiceChanged(service Service, endpoints []Endpoint)
-}
-
-type Time struct {
-	sql.NullTime
-}
-
-func (t Time) MarshalJSON() ([]byte, error) {
-	if t.Valid {
-		return t.Time.MarshalJSON()
-	}
-	return []byte("null"), nil
-}
-
-func NewTime() *Time {
-	return &Time{NullTime: sql.NullTime{}}
 }

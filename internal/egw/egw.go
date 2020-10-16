@@ -4,41 +4,63 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/mux"
-	"github.com/jackc/pgx/v4/pgxpool"
+	egwv1 "gitlab.com/acnodal/egw-resource-model/api/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"acnodal.io/egw-ws/internal/allocator"
 	"acnodal.io/egw-ws/internal/egw/db"
 	"acnodal.io/egw-ws/internal/model"
 	"acnodal.io/egw-ws/internal/util"
 )
 
+// EGW implements the server side of the EGW web service protocol.
 type EGW struct {
-	db *pgxpool.Pool
-	cb model.Callbacks
+	client    client.Client
+	allocator *allocator.Allocator
 }
 
+// ServiceCreateRequest contains the data from a web service request
+// to create a Service.
 type ServiceCreateRequest struct {
-	Service model.Service
-}
-type EndpointCreateRequest struct {
-	Endpoint model.Endpoint
+	Service egwv1.LoadBalancer
 }
 
+// EndpointCreateRequest contains the data from a web service request
+// to create a Endpoint.
+type EndpointCreateRequest struct {
+	Endpoint egwv1.LoadBalancerEndpoint
+}
+
+// createService handles PureLB service announcements. They're sent
+// from the EGW pool in the allocator, so we need to allocate and
+// return the LB address.
 func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
+	var (
+		err error
+	)
 	vars := mux.Vars(r)
-	grpid, err := uuid.Parse(vars["id"])
+
+	var body ServiceCreateRequest
+	err = json.NewDecoder(r.Body).Decode(&body)
 	if err == nil {
-		var body ServiceCreateRequest
-		err = json.NewDecoder(r.Body).Decode(&body)
+		var addr net.IP
+
+		// allocate a public IP address for the service
+		_, addr, err = g.allocator.Allocate(body.Service.Name, []allocator.Port{{Proto: "tcp", Port: body.Service.Spec.PublicPorts[0]}}, "")
 		if err == nil {
-			body.Service.GroupID = grpid
-			svcid, err := db.CreateService(context.Background(), g.db, body.Service)
+			body.Service.Spec.PublicAddress = addr.String()
+
+			// make sure that the link to the owning service group is set
+			body.Service.Spec.ServiceGroup = vars["group"]
+
+			err = db.CreateService(context.Background(), g.client, vars["account"], body.Service)
 			if err == nil {
-				fmt.Printf("POST service created %v %#v\n", svcid, body.Service)
-				http.Redirect(w, r, fmt.Sprintf("/api/egw/services/%v", svcid), http.StatusFound)
+				fmt.Printf("POST service created %v %#v\n", vars["account"], body.Service)
+				http.Redirect(w, r, fmt.Sprintf("/api/egw/accounts/%v/services/%v", vars["account"], body.Service.ObjectMeta.Name), http.StatusFound)
 				return
 			}
 		}
@@ -49,101 +71,62 @@ func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
 
 func (g *EGW) showService(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	id, err := uuid.Parse(vars["id"])
+	service, err := db.ReadService(r.Context(), g.client, vars["account"], vars["service"])
 	if err == nil {
-		service, err := db.ReadService(context.Background(), g.db, id)
-		if err == nil {
-			service.Links = model.Links{
-				"self":  fmt.Sprintf("%s", r.RequestURI),
-				"group": fmt.Sprintf("/api/egw/groups/%v", service.GroupID), // FIXME: use gorilla mux "registered url" to build the url
-				"create-endpoint": fmt.Sprintf("%s/endpoints", r.RequestURI), // FIXME: use gorilla mux "registered url" to build the url
-			}
-			fmt.Printf("GET service %#v\n", service)
-			util.RespondJson(w, service)
-			return
+		service.Links = model.Links{
+			"self":            fmt.Sprintf("%s", r.RequestURI),
+			"group":           fmt.Sprintf("/api/egw/accounts/%v/groups/%v", vars["account"], service.Service.Spec.ServiceGroup), // FIXME: use gorilla mux "registered url" to build these urls
+			"create-endpoint": fmt.Sprintf("%s/endpoints", r.RequestURI),
 		}
+		fmt.Printf("GET service %#v\n", service)
+		util.RespondJSON(w, service)
+		return
 	}
 	fmt.Printf("GET service failed %#v\n", err)
 	util.RespondError(w)
 }
 
-func (g *EGW) createEndpoint(w http.ResponseWriter, r *http.Request) {
+func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	svcid, err := uuid.Parse(vars["id"])
+	var body EndpointCreateRequest
+	err := json.NewDecoder(r.Body).Decode(&body)
 	if err == nil {
-		var body EndpointCreateRequest
-		err := json.NewDecoder(r.Body).Decode(&body)
+		fmt.Printf("POST creating endpoint %#v\n", body)
+		err = db.CreateEndpoint(context.Background(), g.client, vars["account"], vars["service"], body.Endpoint)
 		if err == nil {
-			fmt.Printf("POST creating endpoint %#v\n", body)
-			body.Endpoint.ServiceID = svcid
-			epid, err := db.CreateEndpoint(context.Background(), g.db, body.Endpoint)
-			if err == nil {
-				fmt.Printf("POST endpoint created %#v\n", body)
-				http.Redirect(w, r, fmt.Sprintf("/api/egw/endpoints/%v", epid), http.StatusFound)
+			fmt.Printf("POST endpoint created %#v\n", body)
+			http.Redirect(w, r, fmt.Sprintf("/api/egw/accounts/%v/services/%v", vars["account"], vars["service"]), http.StatusFound)
 
-				// Update the xDS cache
-				go g.notify(svcid)
-
-				return
-			}
+			return
 		}
 	}
 	fmt.Printf("POST endpoint failed %#v\n", err)
 	util.RespondError(w)
 }
 
-func (g *EGW) showEndpoint(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id, err := uuid.Parse(vars["id"])
-	if err == nil {
-		endpoint, err := db.ReadEndpoint(context.Background(), g.db, id)
-		if err == nil {
-			endpoint.Links = model.Links{
-				"self":  fmt.Sprintf("%s", r.RequestURI),
-				"service": fmt.Sprintf("/api/egw/services/%v", endpoint.ServiceID), // FIXME: use gorilla mux "registered url" to build the url
-			}
-			fmt.Printf("GET endpoint %#v\n", endpoint)
-			util.RespondJson(w, endpoint)
-			return
-		}
-	}
-	fmt.Printf("GET endpoint failed %#v\n", err)
-	util.RespondError(w)
-}
-
 func (g *EGW) showGroup(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	id, err := uuid.Parse(vars["id"])
+	group, err := db.ReadGroup(r.Context(), g.client, vars["account"], vars["group"])
 	if err == nil {
-		group, err := db.ReadGroup(context.Background(), g.db, id)
-		if err == nil {
-			group.Links = model.Links{"self": r.RequestURI, "create-service": fmt.Sprintf("%s/%v", r.RequestURI, "services")}
-			util.RespondJson(w, group)
-			return
-		}
+		group.Links = model.Links{"self": r.RequestURI, "create-service": fmt.Sprintf("%s/%v", r.RequestURI, "services")}
+		util.RespondJSON(w, group)
+		return
 	}
 	util.RespondError(w)
 }
 
-func (g *EGW) notify(svcid uuid.UUID) {
-	ctx := context.Background()
-	service, svcerr := db.ReadService(ctx, g.db, svcid)
-	endpoints, eperr := db.ReadServiceEndpoints(ctx, g.db, svcid)
-	if svcerr == nil && eperr == nil {
-		g.cb.ServiceChanged(service, endpoints)
-	}
+// NewEGW configures a new EGW web service instance.
+func NewEGW(client client.Client, allocator *allocator.Allocator) *EGW {
+	return &EGW{client: client, allocator: allocator}
 }
 
-func NewEGW(pool *pgxpool.Pool, callbacks model.Callbacks) *EGW {
-	return &EGW{db: pool, cb: callbacks}
-}
-
-func SetupRoutes(router *mux.Router, prefix string, pool *pgxpool.Pool, callbacks model.Callbacks) {
-	egw := NewEGW(pool, callbacks)
-	egw_router := router.PathPrefix(prefix).Subrouter()
-	egw_router.HandleFunc("/endpoints/{id}", egw.showEndpoint).Methods(http.MethodGet)
-	egw_router.HandleFunc("/services/{id}/endpoints", egw.createEndpoint).Methods(http.MethodPost)
-	egw_router.HandleFunc("/services/{id}", egw.showService).Methods(http.MethodGet)
-	egw_router.HandleFunc("/groups/{id}/services", egw.createService).Methods(http.MethodPost)
-	egw_router.HandleFunc("/groups/{id}", egw.showGroup).Methods(http.MethodGet)
+// SetupRoutes sets up the provided mux.Router to handle the EGW web
+// service routes.
+func SetupRoutes(router *mux.Router, prefix string, client client.Client, allocator *allocator.Allocator) {
+	egw := NewEGW(client, allocator)
+	egwRouter := router.PathPrefix(prefix).Subrouter()
+	egwRouter.HandleFunc("/accounts/{account}/services/{service}/endpoints", egw.createServiceEndpoint).Methods(http.MethodPost)
+	egwRouter.HandleFunc("/accounts/{account}/services/{service}", egw.showService).Methods(http.MethodGet)
+	egwRouter.HandleFunc("/accounts/{account}/groups/{group}/services", egw.createService).Methods(http.MethodPost)
+	egwRouter.HandleFunc("/accounts/{account}/groups/{group}", egw.showGroup).Methods(http.MethodGet)
 }
