@@ -86,6 +86,16 @@ func (g *EGW) showService(w http.ResponseWriter, r *http.Request) {
 	util.RespondError(w)
 }
 
+func (g *EGW) deleteService(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	err := db.DeleteService(r.Context(), g.client, vars["account"], vars["service"])
+	if err == nil {
+		util.RespondJSON(w, map[string]string{"message": "delete successful"})
+		return
+	}
+	util.RespondError(w)
+}
+
 func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	var body EndpointCreateRequest
@@ -126,6 +136,7 @@ func SetupRoutes(router *mux.Router, prefix string, client client.Client, alloca
 	egw := NewEGW(client, allocator)
 	egwRouter := router.PathPrefix(prefix).Subrouter()
 	egwRouter.HandleFunc("/accounts/{account}/services/{service}/endpoints", egw.createServiceEndpoint).Methods(http.MethodPost)
+	egwRouter.HandleFunc("/accounts/{account}/services/{service}", egw.deleteService).Methods(http.MethodDelete)
 	egwRouter.HandleFunc("/accounts/{account}/services/{service}", egw.showService).Methods(http.MethodGet)
 	egwRouter.HandleFunc("/accounts/{account}/groups/{group}/services", egw.createService).Methods(http.MethodPost)
 	egwRouter.HandleFunc("/accounts/{account}/groups/{group}", egw.showGroup).Methods(http.MethodGet)

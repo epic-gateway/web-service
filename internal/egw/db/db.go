@@ -21,6 +21,15 @@ func ReadService(ctx context.Context, cl client.Client, namespace string, name s
 	return &mservice, cl.Get(ctx, client.ObjectKey{Namespace: "egw-" + namespace, Name: name}, &mservice.Service)
 }
 
+// DeleteService deletes the specified load balancer.
+func DeleteService(ctx context.Context, cl client.Client, namespace string, name string) error {
+	service, err := ReadService(ctx, cl, namespace, name)
+	if err != nil {
+		return err
+	}
+	return cl.Delete(ctx, &service.Service)
+}
+
 // CreateService writes a load balancer service to the cluster.
 func CreateService(ctx context.Context, cl client.Client, namespace string, service egwv1.LoadBalancer) error {
 	service.ObjectMeta.Namespace = "egw-" + namespace
