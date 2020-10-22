@@ -16,14 +16,17 @@ package allocator
 
 import (
 	"net"
-	"strconv"
-	"strings"
 	"testing"
 
 	ptu "github.com/prometheus/client_golang/prometheus/testutil"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	egwv1 "gitlab.com/acnodal/egw-resource-model/api/v1"
+)
+
+var (
+	tcp23 = corev1.ServicePort{Protocol: corev1.ProtocolTCP, Port: 23}
 )
 
 func TestAssignment(t *testing.T) {
@@ -39,7 +42,7 @@ func TestAssignment(t *testing.T) {
 		desc       string
 		svc        string
 		ip         string
-		ports      []Port
+		ports      []corev1.ServicePort
 		sharingKey string
 		wantErr    bool
 	}{
@@ -94,21 +97,21 @@ func TestAssignment(t *testing.T) {
 			desc:       "s4 takes an IP, with sharing",
 			svc:        "s4",
 			ip:         "1.2.4.3",
-			ports:      ports("tcp/80"),
+			ports:      []corev1.ServicePort{http},
 			sharingKey: "sharing",
 		},
 		{
 			desc:       "s4 changes its sharing key in place",
 			svc:        "s4",
 			ip:         "1.2.4.3",
-			ports:      ports("tcp/80"),
+			ports:      []corev1.ServicePort{http},
 			sharingKey: "share",
 		},
 		{
 			desc:       "s3 can't share with s4 (port conflict)",
 			svc:        "s3",
 			ip:         "1.2.4.3",
-			ports:      ports("tcp/80"),
+			ports:      []corev1.ServicePort{http},
 			sharingKey: "share",
 			wantErr:    true,
 		},
@@ -116,7 +119,7 @@ func TestAssignment(t *testing.T) {
 			desc:       "s3 can't share with s4 (wrong sharing key)",
 			svc:        "s3",
 			ip:         "1.2.4.3",
-			ports:      ports("tcp/443"),
+			ports:      []corev1.ServicePort{https},
 			sharingKey: "othershare",
 			wantErr:    true,
 		},
@@ -124,14 +127,14 @@ func TestAssignment(t *testing.T) {
 			desc:       "s3 takes the same IP as s4",
 			svc:        "s3",
 			ip:         "1.2.4.3",
-			ports:      ports("tcp/443"),
+			ports:      []corev1.ServicePort{https},
 			sharingKey: "share",
 		},
 		{
 			desc:       "s3 can change its ports while keeping the same IP",
 			svc:        "s3",
 			ip:         "1.2.4.3",
-			ports:      ports("udp/53"),
+			ports:      []corev1.ServicePort{dns},
 			sharingKey: "share",
 		},
 		{
@@ -192,21 +195,21 @@ func TestAssignment(t *testing.T) {
 			desc:       "s4 takes an IP, with sharing",
 			svc:        "s4",
 			ip:         "1000::4:3",
-			ports:      ports("tcp/80"),
+			ports:      []corev1.ServicePort{http},
 			sharingKey: "sharing",
 		},
 		{
 			desc:       "s4 changes its sharing key in place",
 			svc:        "s4",
 			ip:         "1000::4:3",
-			ports:      ports("tcp/80"),
+			ports:      []corev1.ServicePort{http},
 			sharingKey: "share",
 		},
 		{
 			desc:       "s3 can't share with s4 (port conflict)",
 			svc:        "s3",
 			ip:         "1000::4:3",
-			ports:      ports("tcp/80"),
+			ports:      []corev1.ServicePort{http},
 			sharingKey: "share",
 			wantErr:    true,
 		},
@@ -214,7 +217,7 @@ func TestAssignment(t *testing.T) {
 			desc:       "s3 can't share with s4 (wrong sharing key)",
 			svc:        "s3",
 			ip:         "1000::4:3",
-			ports:      ports("tcp/443"),
+			ports:      []corev1.ServicePort{https},
 			sharingKey: "othershare",
 			wantErr:    true,
 		},
@@ -222,21 +225,21 @@ func TestAssignment(t *testing.T) {
 			desc:       "s3 takes the same IP as s4",
 			svc:        "s3",
 			ip:         "1000::4:3",
-			ports:      ports("tcp/443"),
+			ports:      []corev1.ServicePort{https},
 			sharingKey: "share",
 		},
 		{
 			desc:       "s3 can change its ports while keeping the same IP",
 			svc:        "s3",
 			ip:         "1000::4:3",
-			ports:      ports("udp/53"),
+			ports:      []corev1.ServicePort{dns},
 			sharingKey: "share",
 		},
 		{
 			desc:       "s3 can't change its sharing key while keeping the same IP",
 			svc:        "s3",
 			ip:         "1000::4:3",
-			ports:      ports("tcp/443"),
+			ports:      []corev1.ServicePort{https},
 			sharingKey: "othershare",
 			wantErr:    true,
 		},
@@ -305,7 +308,7 @@ func TestPoolAllocation(t *testing.T) {
 	tests := []struct {
 		desc       string
 		svc        string
-		ports      []Port
+		ports      []corev1.ServicePort
 		sharingKey string
 		unassign   bool
 		wantErr    bool
@@ -359,13 +362,13 @@ func TestPoolAllocation(t *testing.T) {
 		{
 			desc:       "s5 enables IP sharing",
 			svc:        "s5",
-			ports:      ports("tcp/80"),
+			ports:      []corev1.ServicePort{http},
 			sharingKey: "share",
 		},
 		{
 			desc:       "s6 can get an IP now, with sharing",
 			svc:        "s6",
-			ports:      ports("tcp/443"),
+			ports:      []corev1.ServicePort{https},
 			sharingKey: "share",
 		},
 
@@ -458,14 +461,14 @@ func TestPoolAllocation(t *testing.T) {
 		{
 			desc:       "s5 enables IP6 sharing",
 			svc:        "s5",
-			ports:      ports("tcp/80"),
+			ports:      []corev1.ServicePort{http},
 			sharingKey: "share",
 			isIPv6:     true,
 		},
 		{
 			desc:       "s6 can get an IP6 now, with sharing",
 			svc:        "s6",
-			ports:      ports("tcp/443"),
+			ports:      []corev1.ServicePort{https},
 			sharingKey: "share",
 			isIPv6:     true,
 		},
@@ -542,7 +545,7 @@ func TestAllocation(t *testing.T) {
 	tests := []struct {
 		desc       string
 		svc        string
-		ports      []Port
+		ports      []corev1.ServicePort
 		sharingKey string
 		unassign   bool
 		wantErr    bool
@@ -581,7 +584,7 @@ func TestAllocation(t *testing.T) {
 		{
 			desc:       "s5 can now get an IP",
 			svc:        "s5",
-			ports:      ports("tcp/80"),
+			ports:      []corev1.ServicePort{http},
 			sharingKey: "share",
 		},
 		{
@@ -592,7 +595,7 @@ func TestAllocation(t *testing.T) {
 		{
 			desc:       "s6 can get an IP with sharing",
 			svc:        "s6",
-			ports:      ports("tcp/443"),
+			ports:      []corev1.ServicePort{https},
 			sharingKey: "share",
 		},
 
@@ -662,7 +665,7 @@ func TestAllocation(t *testing.T) {
 		{
 			desc:       "s5 can now get an IP",
 			svc:        "s5",
-			ports:      ports("tcp/80"),
+			ports:      []corev1.ServicePort{http},
 			sharingKey: "share",
 		},
 		{
@@ -673,7 +676,7 @@ func TestAllocation(t *testing.T) {
 		{
 			desc:       "s6 can get an IP with sharing",
 			svc:        "s6",
-			ports:      ports("tcp/443"),
+			ports:      []corev1.ServicePort{https},
 			sharingKey: "share",
 		},
 	}
@@ -709,7 +712,7 @@ func TestPoolMetrics(t *testing.T) {
 		desc       string
 		svc        string
 		ip         string
-		ports      []Port
+		ports      []corev1.ServicePort
 		sharingKey string
 		ipsInUse   float64
 	}{
@@ -740,7 +743,7 @@ func TestPoolMetrics(t *testing.T) {
 			svc:        "s1",
 			ip:         "1.2.3.4",
 			sharingKey: "key",
-			ports:      ports("tcp/80"),
+			ports:      []corev1.ServicePort{http},
 			ipsInUse:   1,
 		},
 		{
@@ -748,7 +751,7 @@ func TestPoolMetrics(t *testing.T) {
 			svc:        "s2",
 			ip:         "1.2.3.4",
 			sharingKey: "key",
-			ports:      ports("tcp/443"),
+			ports:      []corev1.ServicePort{https},
 			ipsInUse:   1,
 		},
 		{
@@ -756,25 +759,25 @@ func TestPoolMetrics(t *testing.T) {
 			svc:        "s3",
 			ip:         "1.2.3.4",
 			sharingKey: "key",
-			ports:      ports("tcp/23"),
+			ports:      []corev1.ServicePort{tcp23},
 			ipsInUse:   1,
 		},
 		{
 			desc:     "unassign s1 shared",
 			svc:      "s1",
-			ports:    ports("tcp/80"),
+			ports:    []corev1.ServicePort{http},
 			ipsInUse: 1,
 		},
 		{
 			desc:     "unassign s2 shared",
 			svc:      "s2",
-			ports:    ports("tcp/443"),
+			ports:    []corev1.ServicePort{https},
 			ipsInUse: 1,
 		},
 		{
 			desc:     "unassign s3 shared",
 			svc:      "s3",
-			ports:    ports("tcp/23"),
+			ports:    []corev1.ServicePort{tcp23},
 			ipsInUse: 0,
 		},
 	}
@@ -830,19 +833,6 @@ func mustLocalPool(t *testing.T, r string) LocalPool {
 		panic(err)
 	}
 	return *p
-}
-
-func ports(ports ...string) []Port {
-	var ret []Port
-	for _, s := range ports {
-		fs := strings.Split(s, "/")
-		p, err := strconv.Atoi(fs[1])
-		if err != nil {
-			panic("bad port in test")
-		}
-		ret = append(ret, Port{Proto: fs[0], Port: p})
-	}
-	return ret
 }
 
 func servicePrefix(name string, spec egwv1.ServicePrefixSpec) *egwv1.ServicePrefix {

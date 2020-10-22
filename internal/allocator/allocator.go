@@ -19,6 +19,7 @@ import (
 	"net"
 
 	egwv1 "gitlab.com/acnodal/egw-resource-model/api/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // An Allocator tracks IP address pools and allocates addresses from them.
@@ -30,7 +31,7 @@ type Allocator struct {
 type alloc struct {
 	pool  string
 	ip    net.IP
-	ports []Port
+	ports []corev1.ServicePort
 	Key
 }
 
@@ -82,7 +83,7 @@ func (a *Allocator) assign(svc string, alloc *alloc) {
 
 // Assign assigns the requested ip to svc, if the assignment is
 // permissible by sharingKey.
-func (a *Allocator) Assign(svc string, ip net.IP, ports []Port, sharingKey string) (string, error) {
+func (a *Allocator) Assign(svc string, ip net.IP, ports []corev1.ServicePort, sharingKey string) (string, error) {
 	pool := poolFor(a.pools, ip)
 	if pool == "" {
 		return "", fmt.Errorf("%q is not allowed in config", ip)
@@ -104,7 +105,7 @@ func (a *Allocator) Assign(svc string, ip net.IP, ports []Port, sharingKey strin
 	alloc := &alloc{
 		pool:  pool,
 		ip:    ip,
-		ports: make([]Port, len(ports)),
+		ports: make([]corev1.ServicePort, len(ports)),
 		Key:   *sk,
 	}
 	for i, port := range ports {
@@ -137,7 +138,7 @@ func (a *Allocator) Unassign(svc string) bool {
 }
 
 // AllocateFromPool assigns an available IP from pool to service.
-func (a *Allocator) AllocateFromPool(svc string, poolName string, ports []Port, sharingKey string) (net.IP, error) {
+func (a *Allocator) AllocateFromPool(svc string, poolName string, ports []corev1.ServicePort, sharingKey string) (net.IP, error) {
 	var ip net.IP
 
 	pool := a.pools[poolName]
@@ -157,7 +158,7 @@ func (a *Allocator) AllocateFromPool(svc string, poolName string, ports []Port, 
 	alloc := &alloc{
 		pool:  poolName,
 		ip:    ip,
-		ports: make([]Port, len(ports)),
+		ports: make([]corev1.ServicePort, len(ports)),
 		Key:   *sk,
 	}
 	for i, port := range ports {
@@ -169,7 +170,7 @@ func (a *Allocator) AllocateFromPool(svc string, poolName string, ports []Port, 
 }
 
 // Allocate assigns any available and assignable IP to service.
-func (a *Allocator) Allocate(svc string, ports []Port, sharingKey string) (string, net.IP, error) {
+func (a *Allocator) Allocate(svc string, ports []corev1.ServicePort, sharingKey string) (string, net.IP, error) {
 	var (
 		err error
 		ip  net.IP

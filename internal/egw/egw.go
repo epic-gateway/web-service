@@ -50,7 +50,7 @@ func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
 		var addr net.IP
 
 		// allocate a public IP address for the service
-		_, addr, err = g.allocator.Allocate(body.Service.Name, []allocator.Port{{Proto: "tcp", Port: body.Service.Spec.PublicPorts[0]}}, "")
+		_, addr, err = g.allocator.Allocate(body.Service.Name, body.Service.Spec.PublicPorts, "")
 		if err == nil {
 			body.Service.Spec.PublicAddress = addr.String()
 

@@ -19,18 +19,9 @@ import (
 	"errors"
 	"fmt"
 	"net"
+
+	corev1 "k8s.io/api/core/v1"
 )
-
-// Port represents one port in use by a service.
-type Port struct {
-	Proto string
-	Port  int
-}
-
-// String returns a text description of the port.
-func (p Port) String() string {
-	return fmt.Sprintf("%s/%d", p.Proto, p.Port)
-}
 
 // Key represents a "sharing key" which is used to have two or more
 // services share an IP address.
@@ -40,9 +31,9 @@ type Key struct {
 
 // Pool represents a pool of IP addresses.
 type Pool interface {
-	Available(net.IP, []Port, string, *Key) error
-	AssignNext(string, []Port, *Key) (net.IP, error)
-	Assign(net.IP, []Port, string, *Key) error
+	Available(net.IP, []corev1.ServicePort, string, *Key) error
+	AssignNext(string, []corev1.ServicePort, *Key) (net.IP, error)
+	Assign(net.IP, []corev1.ServicePort, string, *Key) error
 	Release(net.IP, string)
 	InUse() int
 	SharingKey(net.IP) *Key

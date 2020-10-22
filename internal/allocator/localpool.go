@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"net"
 	"strings"
+
+	corev1 "k8s.io/api/core/v1"
 )
 
 // LocalPool is the configuration of an IP address pool.
@@ -33,7 +35,7 @@ type LocalPool struct {
 	// Map of the "sharing keys" for each IP address
 	sharingKeys map[string]*Key // ip.String() -> pointer to sharing key
 
-	portsInUse map[string]map[Port]string // ip.String() -> Port -> svc
+	portsInUse map[string]map[corev1.ServicePort]string // ip.String() -> Port -> svc
 
 	subnetV4    string
 	aggregation string
@@ -49,7 +51,7 @@ func NewLocalPool(rawrange string, subnet string, aggregation string) (*LocalPoo
 		addresses:      &iprange,
 		addressesInUse: map[string]map[string]bool{},
 		sharingKeys:    map[string]*Key{},
-		portsInUse:     map[string]map[Port]string{},
+		portsInUse:     map[string]map[corev1.ServicePort]string{},
 		subnetV4:       subnet,
 		aggregation:    aggregation,
 	}, nil
@@ -59,7 +61,7 @@ func NewLocalPool(rawrange string, subnet string, aggregation string) (*LocalPoo
 // depends on whether another service is using the address, and if so,
 // whether this service can share the address with it. error will be
 // nil if the ip is available, and will contain an explanation if not.
-func (p LocalPool) Available(ip net.IP, ports []Port, service string, key *Key) error {
+func (p LocalPool) Available(ip net.IP, ports []corev1.ServicePort, service string, key *Key) error {
 	// No key: no sharing
 	if key == nil {
 		key = &Key{}
@@ -87,7 +89,7 @@ func (p LocalPool) Available(ip net.IP, ports []Port, service string, key *Key) 
 
 		for _, port := range ports {
 			if curSvc, ok := p.portsInUse[ip.String()][port]; ok && curSvc != service {
-				return fmt.Errorf("port %s is already in use on %q", port, ip)
+				return fmt.Errorf("port %v is already in use on %q", port, ip)
 			}
 		}
 	}
@@ -96,7 +98,7 @@ func (p LocalPool) Available(ip net.IP, ports []Port, service string, key *Key) 
 }
 
 // AssignNext assigns a service to the next available IP.
-func (p LocalPool) AssignNext(service string, ports []Port, sharingKey *Key) (net.IP, error) {
+func (p LocalPool) AssignNext(service string, ports []corev1.ServicePort, sharingKey *Key) (net.IP, error) {
 	for pos := p.First(); pos != nil; pos = p.Next(pos) {
 		if err := p.Assign(pos, ports, service, sharingKey); err == nil {
 			// we found an available address
@@ -108,7 +110,7 @@ func (p LocalPool) AssignNext(service string, ports []Port, sharingKey *Key) (ne
 }
 
 // Assign assigns a service to an IP.
-func (p LocalPool) Assign(ip net.IP, ports []Port, service string, sharingKey *Key) error {
+func (p LocalPool) Assign(ip net.IP, ports []corev1.ServicePort, service string, sharingKey *Key) error {
 	ipstr := ip.String()
 
 	if err := p.Available(ip, ports, service, sharingKey); err != nil {
@@ -121,7 +123,7 @@ func (p LocalPool) Assign(ip net.IP, ports []Port, service string, sharingKey *K
 	}
 	p.addressesInUse[ipstr][service] = true
 	if p.portsInUse[ipstr] == nil {
-		p.portsInUse[ipstr] = map[Port]string{}
+		p.portsInUse[ipstr] = map[corev1.ServicePort]string{}
 	}
 	for _, port := range ports {
 		p.portsInUse[ipstr][port] = service

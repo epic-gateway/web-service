@@ -15,17 +15,11 @@
 package allocator
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 )
 
 // Ports turns a service definition into a set of allocator ports.
-func Ports(svc *v1.Service) []Port {
-	var ret []Port
-	for _, port := range svc.Spec.Ports {
-		ret = append(ret, Port{
-			Proto: string(port.Protocol),
-			Port:  int(port.Port),
-		})
-	}
-	return ret
+func Ports(svc *v1.Service) []corev1.ServicePort {
+	return svc.Spec.Ports
 }
