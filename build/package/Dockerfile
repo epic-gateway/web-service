@@ -8,19 +8,25 @@ ARG GITLAB_TOKEN
 RUN apk add git
 RUN git config --global url."https://oauth2:${GITLAB_TOKEN}@gitlab.com/acnodal".insteadOf https://gitlab.com/acnodal
 
-WORKDIR /usr/src/egw-ws
+WORKDIR /opt/acnodal/src
 COPY . ./
 
 # build the web service (static)
-RUN go build  -tags 'osusergo netgo' -o /usr/local/bin/egw-ws main.go
+RUN go build  -tags 'osusergo netgo' -o ../bin/egw-ws main.go
 
 
 # start fresh
 FROM golang:alpine
+ENV bin=/opt/acnodal/bin/egw-ws
 
 # copy executables from the builder image
-WORKDIR /usr/local/bin
-COPY --from=builder /usr/local/bin/egw-ws ./
+COPY --from=builder ${bin} ${bin}
 
 EXPOSE 8080
-CMD ["/usr/local/bin/egw-ws"]
+
+# The softlink is because Dockerfile variable interpolation happens at
+# run-time so if you have variables in the CMD string they won't get
+# resolved to their values.  This lets us have a hard-coded CMD string
+# that links to the image-specific command.
+RUN ln -s ${bin} /opt/acnodal/bin/cmd
+CMD ["/opt/acnodal/bin/cmd"]
