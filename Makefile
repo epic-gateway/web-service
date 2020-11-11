@@ -33,7 +33,7 @@ run: ## Run the service using "go run" (KUBECONFIG needs to be set)
 	go run ./main.go
 
 image:	check ## Build the Docker image
-	@docker build --build-arg=GITLAB_TOKEN --file=${DOCKERFILE} --tag=${TAG} .
+	@docker build --build-arg=GITLAB_TOKEN --file=${DOCKERFILE} --tag=${TAG} ${DOCKER_BUILD_OPTIONS} .
 
 install:	image ## Push the image to the repo
 	docker push ${TAG}
