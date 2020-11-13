@@ -7,7 +7,7 @@ require (
 	github.com/gorilla/mux v1.7.4
 	github.com/prometheus/client_golang v1.0.0
 	github.com/stretchr/testify v1.6.1
-	gitlab.com/acnodal/egw-resource-model v0.1.4-pre0
+	gitlab.com/acnodal/egw-resource-model v0.1.4-pre2
 	k8s.io/api v0.18.6
 	k8s.io/apimachinery v0.18.6
 	k8s.io/client-go v0.18.6
