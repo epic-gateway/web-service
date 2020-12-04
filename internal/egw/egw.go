@@ -9,6 +9,7 @@ import (
 
 	"github.com/gorilla/mux"
 	egwv1 "gitlab.com/acnodal/egw-resource-model/api/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"acnodal.io/egw-ws/internal/allocator"
@@ -130,12 +131,21 @@ func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Save the service
+	// prepare a patch to add this endpoint to the LB spec
+	patchBytes, err := json.Marshal([]map[string]interface{}{{"op": "add", "path": "/spec/endpoints/0", "value": body.Endpoint}})
+	if err != nil {
+		fmt.Printf("POST marshaling endpoint patch %#v\n", err)
+		util.RespondError(w, err)
+		return
+	}
+
+	// apply the patch
 	fmt.Printf("POST creating endpoint %#v\n", body)
-	err = g.client.Update(ctx, &service.Service)
+	err = g.client.Patch(ctx, &service.Service, client.RawPatch(types.JSONPatchType, patchBytes))
 	if err != nil {
 		fmt.Printf("POST endpoint failed %#v\n", err)
 		util.RespondError(w, err)
+		return
 	}
 
 	fmt.Printf("POST endpoint created %#v\n", body)
