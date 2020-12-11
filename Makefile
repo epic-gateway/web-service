@@ -1,10 +1,10 @@
-REPO = registry.gitlab.com/acnodal
-PREFIX = egw-web-service
-SUFFIX = ${USER}-dev
+REPO ?= registry.gitlab.com/acnodal
+PREFIX ?= egw-web-service
+SUFFIX ?= ${USER}-dev
 SHELL:=/bin/bash
 
-TAG = ${REPO}/${PREFIX}:${SUFFIX}
-DOCKERFILE = build/package/Dockerfile
+TAG ?= ${REPO}/${PREFIX}:${SUFFIX}
+DOCKERFILE ?= build/package/Dockerfile
 
 ifndef GITLAB_TOKEN
 $(error GITLAB_TOKEN not set. It must contain a gitlab Personal Access Token with repo read access)
