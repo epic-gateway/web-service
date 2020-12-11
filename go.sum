@@ -245,6 +245,8 @@ github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510/go.mod h1:pupxD2MaaD3
 github.com/google/uuid v1.0.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/google/uuid v1.1.1 h1:Gkbcsh/GbpXz7lPftLA3P6TYMwjCLYm83jiFQZF/3gY=
 github.com/google/uuid v1.1.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/google/uuid v1.1.2 h1:EVhdT+1Kseyi1/pUmXKaFxYsDNy9RQYkMWRH68J/W7Y=
+github.com/google/uuid v1.1.2/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/googleapis/gax-go/v2 v2.0.4/go.mod h1:0Wqv26UfaUD9n4G6kQubkQ+KchISgw+vpHVxEJEs9eg=
 github.com/googleapis/gnostic v0.0.0-20170729233727-0c5108395e2d/go.mod h1:sJBsCZ4ayReDTBIg8b9dl28c5xFWyhBTVRp3pOg5EKY=
 github.com/googleapis/gnostic v0.1.0/go.mod h1:sJBsCZ4ayReDTBIg8b9dl28c5xFWyhBTVRp3pOg5EKY=
@@ -480,6 +482,8 @@ gitlab.com/acnodal/egw-resource-model v0.1.9-pre2 h1:WHRnP/JqDyEcoEsp9Jp8cVscjup
 gitlab.com/acnodal/egw-resource-model v0.1.9-pre2/go.mod h1:BF2t4VSkoIMWLxUF5KRxx4sch9YGsGLB4CxhAAmF94I=
 gitlab.com/acnodal/egw-resource-model v0.1.10-pre0 h1:78wR/TLFqvUoUwcP4asu8TpLTVuM1FE6Pj60cOZqJ4o=
 gitlab.com/acnodal/egw-resource-model v0.1.10-pre0/go.mod h1:BF2t4VSkoIMWLxUF5KRxx4sch9YGsGLB4CxhAAmF94I=
+gitlab.com/acnodal/egw-resource-model v0.1.11-pre0 h1:t9IHVL8YN5yMuTihEjXZqfwmJvJ4bpKpxFLou4PfcrM=
+gitlab.com/acnodal/egw-resource-model v0.1.11-pre0/go.mod h1:BF2t4VSkoIMWLxUF5KRxx4sch9YGsGLB4CxhAAmF94I=
 gitlab.com/acnodal/packet-forwarding-component/src/go v0.0.0-20201020212529-ed4982208c08 h1:ash0kj++W04QTMonOE40qpGVwJSp/x4STnJe8Fr8C0k=
 gitlab.com/acnodal/packet-forwarding-component/src/go v0.0.0-20201020212529-ed4982208c08/go.mod h1:SDPfSIpwi0eaR90u+CSnzctMM/JOjOJFA+QFnljtC7M=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=

@@ -6,16 +6,21 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"regexp"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	egwv1 "gitlab.com/acnodal/egw-resource-model/api/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"acnodal.io/egw-ws/internal/allocator"
 	"acnodal.io/egw-ws/internal/egw/db"
 	"acnodal.io/egw-ws/internal/model"
 	"acnodal.io/egw-ws/internal/util"
+)
+
+var (
+	duplicateRE = regexp.MustCompile(`^.*duplicate endpoint: (.*)$`)
 )
 
 // EGW implements the server side of the EGW web service protocol.
@@ -33,7 +38,7 @@ type ServiceCreateRequest struct {
 // EndpointCreateRequest contains the data from a web service request
 // to create a Endpoint.
 type EndpointCreateRequest struct {
-	Endpoint egwv1.LoadBalancerEndpoint
+	Endpoint egwv1.Endpoint
 }
 
 // createService handles PureLB service announcements. They're sent
@@ -120,37 +125,64 @@ func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Add the endpoint to the service
-	err = service.Service.Spec.AddEndpoint(body.Endpoint)
-	if err != nil {
-		fmt.Printf("Duplicate endpoint %#v\n", body.Endpoint)
+	// Tie the endpoint to the service
+	body.Endpoint.Spec.LoadBalancer = service.Service.Name
 
-		// We already had that endpoint, but we can return what we hope
-		// the client needs to set up the tunnels on its end
-		util.RespondConflict(w, map[string]interface{}{"message": err.Error(), "service": service.Service}, util.EmptyHeader)
-		return
+	// Give the endpoint a name
+	if body.Endpoint.Name == "" {
+		name, err := uuid.NewRandom()
+		if err != nil {
+			fmt.Printf("generating uuid: %s\n", err)
+		} else {
+			body.Endpoint.Name = name.String()
+		}
 	}
 
-	// prepare a patch to add this endpoint to the LB spec
-	patchBytes, err := json.Marshal([]map[string]interface{}{{"op": "add", "path": "/spec/endpoints/0", "value": body.Endpoint}})
+	// Create the endpoint
+	err = db.CreateEndpoint(ctx, g.client, vars["account"], body.Endpoint)
 	if err != nil {
-		fmt.Printf("POST marshaling endpoint patch %#v\n", err)
+		matches := duplicateRE.FindStringSubmatch(err.Error())
+		if len(matches) > 0 {
+			fmt.Printf("Duplicate endpoint %#v: %s\n", body.Endpoint, err)
+
+			// We already had that endpoint, but we can return what we hope
+			// the client needs to set up the tunnels on its end
+			links := model.Links{"self": fmt.Sprintf("%s/%s", r.RequestURI, matches[1])}
+			util.RespondConflict(w, map[string]interface{}{"message": err.Error(), "link": links, "endpoint": body.Endpoint}, util.EmptyHeader)
+			return
+		}
+
+		// Something else went wrong
+		fmt.Printf("POST endpoint failed %#v %#v\n", body, err)
 		util.RespondError(w, err)
 		return
 	}
 
-	// apply the patch
-	fmt.Printf("POST creating endpoint %#v\n", body)
-	err = g.client.Patch(ctx, &service.Service, client.RawPatch(types.JSONPatchType, patchBytes))
-	if err != nil {
-		fmt.Printf("POST endpoint failed %#v\n", err)
-		util.RespondError(w, err)
-		return
-	}
-
-	fmt.Printf("POST endpoint created %#v\n", body)
-	http.Redirect(w, r, fmt.Sprintf("/api/egw/accounts/%v/services/%v", vars["account"], vars["service"]), http.StatusFound)
+	fmt.Printf("POST endpoint created %#v\n", body.Endpoint)
+	http.Redirect(w, r, fmt.Sprintf("/api/egw/accounts/%v/services/%v/endpoints/%v", vars["account"], vars["service"], body.Endpoint.Name), http.StatusFound)
 	return
+}
+
+func (g *EGW) showEndpoint(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	ep, err := db.ReadEndpoint(r.Context(), g.client, vars["account"], vars["endpoint"])
+	if err == nil {
+		ep.Links = model.Links{"self": r.RequestURI, "service": fmt.Sprintf("/api/egw/accounts/%v/services/%v", vars["account"], vars["service"])}
+		util.RespondJSON(w, http.StatusOK, ep, util.EmptyHeader)
+		return
+	}
+	util.RespondError(w, err)
+}
+
+func (g *EGW) deleteEndpoint(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	err := db.DeleteEndpoint(r.Context(), g.client, vars["account"], vars["endpoint"])
+	if err == nil {
+		fmt.Printf("DELETE endpoint %s/%s\n", vars["account"], vars["endpoint"])
+		util.RespondJSON(w, http.StatusOK, map[string]string{"message": "endpoint deleted"}, util.EmptyHeader)
+		return
+	}
+	util.RespondError(w, err)
 }
 
 func (g *EGW) showGroup(w http.ResponseWriter, r *http.Request) {
@@ -174,6 +206,8 @@ func NewEGW(client client.Client, allocator *allocator.Allocator) *EGW {
 func SetupRoutes(router *mux.Router, prefix string, client client.Client, allocator *allocator.Allocator) {
 	egw := NewEGW(client, allocator)
 	egwRouter := router.PathPrefix(prefix).Subrouter()
+	egwRouter.HandleFunc("/accounts/{account}/services/{service}/endpoints/{endpoint}", egw.deleteEndpoint).Methods(http.MethodDelete)
+	egwRouter.HandleFunc("/accounts/{account}/services/{service}/endpoints/{endpoint}", egw.showEndpoint).Methods(http.MethodGet)
 	egwRouter.HandleFunc("/accounts/{account}/services/{service}/endpoints", egw.createServiceEndpoint).Methods(http.MethodPost)
 	egwRouter.HandleFunc("/accounts/{account}/services/{service}", egw.deleteService).Methods(http.MethodDelete)
 	egwRouter.HandleFunc("/accounts/{account}/services/{service}", egw.showService).Methods(http.MethodGet)
