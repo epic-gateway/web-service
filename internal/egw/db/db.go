@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	egwv1 "gitlab.com/acnodal/egw-resource-model/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -29,14 +31,36 @@ func ReadGroup(ctx context.Context, cl client.Client, namespace string, name str
 
 // ReadService reads one load balancer service from the cluster.
 func ReadService(ctx context.Context, cl client.Client, namespace string, name string) (*model.Service, error) {
+	var err error
 	mservice := model.NewService()
-	return &mservice, cl.Get(ctx, client.ObjectKey{Namespace: "egw-" + namespace, Name: name}, &mservice.Service)
+	tries := 3
+	for err = fmt.Errorf(""); err != nil && tries > 0; tries-- {
+		err = cl.Get(ctx, client.ObjectKey{Namespace: "egw-" + namespace, Name: name}, &mservice.Service)
+		if err != nil {
+			fmt.Printf("problem reading service %s/%s: %#v\n", namespace, name, err)
+			if tries > 0 {
+				time.Sleep(1 * time.Second)
+			}
+		}
+	}
+	return &mservice, err
 }
 
 // ReadEndpoint reads one service endpoint from the cluster.
 func ReadEndpoint(ctx context.Context, cl client.Client, namespace string, name string) (*model.Endpoint, error) {
+	var err error
 	mendpoint := model.NewEndpoint()
-	return &mendpoint, cl.Get(ctx, client.ObjectKey{Namespace: "egw-" + namespace, Name: name}, &mendpoint.Endpoint)
+	tries := 3
+	for err = fmt.Errorf(""); err != nil && tries > 0; tries-- {
+		err = cl.Get(ctx, client.ObjectKey{Namespace: "egw-" + namespace, Name: name}, &mendpoint.Endpoint)
+		if err != nil {
+			fmt.Printf("problem reading endpoint %s/%s: %#v\n", namespace, name, err)
+			if tries > 0 {
+				time.Sleep(1 * time.Second)
+			}
+		}
+	}
+	return &mendpoint, err
 }
 
 // DeleteService deletes the specified load balancer.

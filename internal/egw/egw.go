@@ -88,7 +88,7 @@ func (g *EGW) showService(w http.ResponseWriter, r *http.Request) {
 		util.RespondJSON(w, http.StatusOK, service, util.EmptyHeader)
 		return
 	}
-	fmt.Printf("GET service failed %#v\n", err)
+	fmt.Printf("GET service failed %s/%s %#v\n", vars["account"], vars["service"], err)
 	util.RespondError(w, err)
 }
 
@@ -171,6 +171,7 @@ func (g *EGW) showEndpoint(w http.ResponseWriter, r *http.Request) {
 		util.RespondJSON(w, http.StatusOK, ep, util.EmptyHeader)
 		return
 	}
+	fmt.Printf("GET endpoint failed %s/%s %#v\n", vars["account"], vars["endpoint"], err)
 	util.RespondError(w, err)
 }
 
