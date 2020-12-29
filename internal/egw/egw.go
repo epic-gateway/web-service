@@ -96,6 +96,7 @@ func (g *EGW) deleteService(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	err := db.DeleteService(r.Context(), g.client, vars["account"], vars["service"])
 	if err == nil {
+		fmt.Printf("DELETE service %s/%s\n", vars["account"], vars["service"])
 		util.RespondJSON(w, http.StatusOK, map[string]string{"message": "delete successful"}, map[string]string{})
 		return
 	}
