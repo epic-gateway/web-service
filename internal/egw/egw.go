@@ -126,7 +126,9 @@ func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Tie the endpoint to the service
+	// Tie the endpoint to the service. We use a label so we can query
+	// for the set of endpoints that belong to a given LB.
+	body.Endpoint.Labels = map[string]string{egwv1.OwningLoadBalancerLabel: service.Service.Name}
 	body.Endpoint.Spec.LoadBalancer = service.Service.Name
 
 	// Give the endpoint a name
@@ -134,9 +136,10 @@ func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 		name, err := uuid.NewRandom()
 		if err != nil {
 			fmt.Printf("generating uuid: %s\n", err)
-		} else {
-			body.Endpoint.Name = name.String()
+			util.RespondError(w, err)
+			return
 		}
+		body.Endpoint.Name = fmt.Sprintf("%s-%s", body.Endpoint.Spec.LoadBalancer, name.String())
 	}
 
 	// Create the endpoint
