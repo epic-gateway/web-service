@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net"
 	"net/http"
 	"regexp"
 
@@ -46,33 +45,49 @@ type EndpointCreateRequest struct {
 // return the LB address.
 func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
 	var (
-		err error
+		err  error
+		body ServiceCreateRequest
 	)
 	vars := mux.Vars(r)
 
-	var body ServiceCreateRequest
 	err = json.NewDecoder(r.Body).Decode(&body)
-	if err == nil {
-		var addr net.IP
-
-		// allocate a public IP address for the service
-		_, addr, err = g.allocator.Allocate(body.Service.Name, body.Service.Spec.PublicPorts, "")
-		if err == nil {
-			body.Service.Spec.PublicAddress = addr.String()
-
-			// make sure that the link to the owning service group is set
-			body.Service.Spec.ServiceGroup = vars["group"]
-
-			err = db.CreateService(context.Background(), g.client, vars["account"], body.Service)
-			if err == nil {
-				fmt.Printf("POST service created %v %#v\n", vars["account"], body.Service)
-				http.Redirect(w, r, fmt.Sprintf("/api/egw/accounts/%v/services/%v", vars["account"], body.Service.ObjectMeta.Name), http.StatusFound)
-				return
-			}
-		}
+	if err != nil {
+		fmt.Printf("POST service failed %#v\n", err)
+		util.RespondError(w, err)
+		return
 	}
-	fmt.Printf("POST service failed %#v\n", err)
-	util.RespondError(w, err)
+
+	// get the owning group which points to the service prefix from
+	// which we'll allocate the address
+	group, err := db.ReadGroup(r.Context(), g.client, vars["account"], vars["group"])
+	if err != nil {
+		fmt.Printf("POST service failed %#v\n", err)
+		util.RespondError(w, err)
+		return
+	}
+
+	// allocate a public IP address for the service
+	addr, err := g.allocator.AllocateFromPool(body.Service.Name, group.Group.Spec.ServicePrefix, body.Service.Spec.PublicPorts, "")
+	if err != nil {
+		fmt.Printf("POST service failed %#v\n", err)
+		util.RespondError(w, err)
+		return
+	}
+	body.Service.Spec.PublicAddress = addr.String()
+
+	// make sure that the link to the owning service group is set
+	body.Service.Spec.ServiceGroup = vars["group"]
+
+	// create the service CR
+	err = db.CreateService(r.Context(), g.client, vars["account"], body.Service)
+	if err != nil {
+		fmt.Printf("POST service failed %#v\n", err)
+		util.RespondError(w, err)
+		return
+	}
+
+	fmt.Printf("POST service created %v %#v\n", vars["account"], body.Service)
+	http.Redirect(w, r, fmt.Sprintf("/api/egw/accounts/%v/services/%v", vars["account"], body.Service.ObjectMeta.Name), http.StatusFound)
 }
 
 func (g *EGW) showService(w http.ResponseWriter, r *http.Request) {

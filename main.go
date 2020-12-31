@@ -37,8 +37,8 @@ type callbacks struct {
 	allocator *allocator.Allocator
 }
 
-func (cb callbacks) ServicePrefixChanged(prefix *egwv1.ServicePrefix) error {
-	if err := cb.allocator.SetPools([]*egwv1.ServicePrefix{prefix}); err != nil {
+func (cb callbacks) ServicePrefixesChanged(prefixes []egwv1.ServicePrefix) error {
+	if err := cb.allocator.SetPools(prefixes); err != nil {
 		log.Fatal(err)
 	}
 	return nil

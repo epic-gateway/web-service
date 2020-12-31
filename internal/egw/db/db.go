@@ -24,9 +24,9 @@ func CreateEndpoint(ctx context.Context, cl client.Client, namespace string, ep 
 }
 
 // ReadGroup reads one service group from the cluster.
-func ReadGroup(ctx context.Context, cl client.Client, namespace string, name string) (*model.Group, error) {
+func ReadGroup(ctx context.Context, cl client.Client, accountName string, name string) (*model.Group, error) {
 	mgroup := model.NewGroup()
-	return &mgroup, cl.Get(ctx, client.ObjectKey{Namespace: "egw-" + namespace, Name: name}, &mgroup.Group)
+	return &mgroup, cl.Get(ctx, client.ObjectKey{Namespace: "egw-" + accountName, Name: name}, &mgroup.Group)
 }
 
 // ReadService reads one load balancer service from the cluster.

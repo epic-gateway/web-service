@@ -44,7 +44,7 @@ func NewAllocator() *Allocator {
 }
 
 // SetPools updates the set of address pools that the allocator owns.
-func (a *Allocator) SetPools(groups []*egwv1.ServicePrefix) error {
+func (a *Allocator) SetPools(groups []egwv1.ServicePrefix) error {
 	pools, err := parseConfig(groups)
 	if err != nil {
 		return err
@@ -141,8 +141,15 @@ func (a *Allocator) Unassign(svc string) bool {
 func (a *Allocator) AllocateFromPool(svc string, poolName string, ports []corev1.ServicePort, sharingKey string) (net.IP, error) {
 	var ip net.IP
 
+	// if we have already allocated an address for this service then
+	// return it
+	if alloc := a.allocated[svc]; alloc != nil {
+		return alloc.ip, nil
+	}
+
 	pool := a.pools[poolName]
 	if pool == nil {
+		fmt.Printf("known pools: %#v\n", a.pools)
 		return nil, fmt.Errorf("unknown pool %q", poolName)
 	}
 
@@ -178,14 +185,7 @@ func (a *Allocator) Allocate(svc string, ports []corev1.ServicePort, sharingKey 
 
 	fmt.Println("attempting to allocate")
 
-	// if we have already allocated an address for this service then
-	// return it
-	if alloc := a.allocated[svc]; alloc != nil {
-		return alloc.pool, alloc.ip, nil
-	}
-
-	// we need an address but no pool was specified so it's either the
-	// "default" pool or nothing
+	// it's either the "default" pool or nothing
 	ip, err = a.AllocateFromPool(svc, "default", ports, sharingKey)
 	if err == nil {
 		return "default", ip, nil
@@ -221,29 +221,31 @@ func poolFor(pools map[string]Pool, ip net.IP) string {
 	return ""
 }
 
-func parseConfig(groups []*egwv1.ServicePrefix) (map[string]Pool, error) {
+func parseConfig(groups []egwv1.ServicePrefix) (map[string]Pool, error) {
 	pools := map[string]Pool{}
 
 	for i, group := range groups {
-		pool, err := parsePrefix(group.Name, group.Spec)
+		poolName := group.ObjectMeta.Namespace + "/" + group.ObjectMeta.Name
+
+		pool, err := parsePrefix(poolName, group.Spec)
 		if err != nil {
 			return nil, fmt.Errorf("parsing address pool #%d: %s", i+1, err)
 		}
 
 		// Check that the pool isn't already defined
-		if pools[group.Name] != nil {
-			return nil, fmt.Errorf("duplicate definition of pool %q", group.Name)
+		if pools[poolName] != nil {
+			return nil, fmt.Errorf("duplicate definition of pool %q", poolName)
 		}
 
 		// Check that this pool doesn't overlap with any of the previous
 		// ones
 		for name, r := range pools {
 			if pool.Overlaps(r) {
-				return nil, fmt.Errorf("pool %q overlaps with already defined pool %q", group.Name, name)
+				return nil, fmt.Errorf("pool %q overlaps with already defined pool %q", poolName, name)
 			}
 		}
 
-		pools[group.Name] = pool
+		pools[poolName] = pool
 	}
 
 	return pools, nil

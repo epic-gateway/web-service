@@ -14,7 +14,7 @@ import (
 // ServicePrefixCallbacks are how this controller notifies the control
 // plane of object changes.
 type ServicePrefixCallbacks interface {
-	ServicePrefixChanged(*egwv1.ServicePrefix) error
+	ServicePrefixesChanged([]egwv1.ServicePrefix) error
 }
 
 // ServicePrefixReconciler reconciles a ServicePrefix object
@@ -35,14 +35,13 @@ func (r *ServicePrefixReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 	ctx := context.TODO()
 	_ = r.Log.WithValues("serviceprefix", req.NamespacedName)
 
-	// read the object that caused the event
-	prefix := &egwv1.ServicePrefix{}
-	err := r.Get(ctx, req.NamespacedName, prefix)
-	if err != nil {
+	listOps := client.ListOptions{Namespace: ""}
+	list := egwv1.ServicePrefixList{}
+	if err := r.List(ctx, &list, &listOps); err != nil {
 		return result, err
 	}
 
-	r.Callbacks.ServicePrefixChanged(prefix)
+	r.Callbacks.ServicePrefixesChanged(list.Items)
 
 	return result, nil
 }

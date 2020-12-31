@@ -472,23 +472,6 @@ func TestPoolAllocation(t *testing.T) {
 			sharingKey: "share",
 			isIPv6:     true,
 		},
-
-		// Test the "should-not-happen" case where an svc already has a IP from the wrong family
-		{
-			desc:     "s1 clear",
-			svc:      "s1",
-			unassign: true,
-		},
-		{
-			desc: "s1 get an IPv4",
-			svc:  "s1",
-		},
-		{
-			desc:    "s1 get an IPv6",
-			svc:     "s1",
-			isIPv6:  true,
-			wantErr: true,
-		},
 	}
 
 	for _, test := range tests {
