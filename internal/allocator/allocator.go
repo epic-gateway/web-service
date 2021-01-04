@@ -225,7 +225,7 @@ func parseConfig(groups []egwv1.ServicePrefix) (map[string]Pool, error) {
 	pools := map[string]Pool{}
 
 	for i, group := range groups {
-		poolName := group.ObjectMeta.Namespace + "/" + group.ObjectMeta.Name
+		poolName := group.Name
 
 		pool, err := parsePrefix(poolName, group.Spec)
 		if err != nil {

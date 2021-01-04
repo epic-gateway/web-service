@@ -37,7 +37,7 @@ type ServiceCreateRequest struct {
 // EndpointCreateRequest contains the data from a web service request
 // to create a Endpoint.
 type EndpointCreateRequest struct {
-	Endpoint egwv1.Endpoint
+	Endpoint egwv1.RemoteEndpoint
 }
 
 // createService handles PureLB service announcements. They're sent
@@ -67,7 +67,7 @@ func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// allocate a public IP address for the service
-	addr, err := g.allocator.AllocateFromPool(body.Service.Name, group.Group.Spec.ServicePrefix, body.Service.Spec.PublicPorts, "")
+	addr, err := g.allocator.AllocateFromPool(body.Service.Name, group.Group.Labels[egwv1.OwningServicePrefixLabel], body.Service.Spec.PublicPorts, "")
 	if err != nil {
 		fmt.Printf("POST service failed %#v\n", err)
 		util.RespondError(w, err)
@@ -76,7 +76,10 @@ func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
 	body.Service.Spec.PublicAddress = addr.String()
 
 	// make sure that the link to the owning service group is set
-	body.Service.Spec.ServiceGroup = vars["group"]
+	if body.Service.Labels == nil {
+		body.Service.Labels = map[string]string{}
+	}
+	body.Service.Labels[egwv1.OwningServiceGroupLabel] = vars["group"]
 
 	// create the service CR
 	err = db.CreateService(r.Context(), g.client, vars["account"], body.Service)
@@ -96,7 +99,7 @@ func (g *EGW) showService(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		service.Links = model.Links{
 			"self":            fmt.Sprintf("%s", r.RequestURI),
-			"group":           fmt.Sprintf("/api/egw/accounts/%v/groups/%v", vars["account"], service.Service.Spec.ServiceGroup), // FIXME: use gorilla mux "registered url" to build these urls
+			"group":           fmt.Sprintf("/api/egw/accounts/%v/groups/%v", vars["account"], service.Service.Labels[egwv1.OwningServiceGroupLabel]), // FIXME: use gorilla mux "registered url" to build these urls
 			"create-endpoint": fmt.Sprintf("%s/endpoints", r.RequestURI),
 		}
 		fmt.Printf("GET service %#v\n", service)
@@ -144,7 +147,6 @@ func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 	// Tie the endpoint to the service. We use a label so we can query
 	// for the set of endpoints that belong to a given LB.
 	body.Endpoint.Labels = map[string]string{egwv1.OwningLoadBalancerLabel: service.Service.Name}
-	body.Endpoint.Spec.LoadBalancer = service.Service.Name
 
 	// Give the endpoint a name
 	if body.Endpoint.Name == "" {
@@ -154,7 +156,7 @@ func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 			util.RespondError(w, err)
 			return
 		}
-		body.Endpoint.Name = fmt.Sprintf("%s-%s", body.Endpoint.Spec.LoadBalancer, name.String())
+		body.Endpoint.Name = fmt.Sprintf("%s-%s", service.Service.Name, name.String())
 	}
 
 	// Create the endpoint

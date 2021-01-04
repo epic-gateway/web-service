@@ -18,7 +18,7 @@ func CreateService(ctx context.Context, cl client.Client, namespace string, serv
 }
 
 // CreateEndpoint writes an endpoint CR to the cluster.
-func CreateEndpoint(ctx context.Context, cl client.Client, namespace string, ep egwv1.Endpoint) error {
+func CreateEndpoint(ctx context.Context, cl client.Client, namespace string, ep egwv1.RemoteEndpoint) error {
 	ep.ObjectMeta.Namespace = "egw-" + namespace
 	return cl.Create(ctx, &ep)
 }

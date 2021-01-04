@@ -39,14 +39,14 @@ func NewService() Service {
 
 // Endpoint represents a load balancer endpoint on the wire.
 type Endpoint struct {
-	Links    Links          `json:"link"`
-	Endpoint egwv1.Endpoint `json:"endpoint"`
+	Links    Links                `json:"link"`
+	Endpoint egwv1.RemoteEndpoint `json:"endpoint"`
 }
 
 // NewEndpoint configures a new Endpoint instance.
 func NewEndpoint() Endpoint {
 	return Endpoint{
 		Links:    Links{},
-		Endpoint: egwv1.Endpoint{},
+		Endpoint: egwv1.RemoteEndpoint{},
 	}
 }
