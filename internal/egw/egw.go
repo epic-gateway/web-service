@@ -211,8 +211,19 @@ func (g *EGW) showGroup(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	group, err := db.ReadGroup(r.Context(), g.client, vars["account"], vars["group"])
 	if err == nil {
-		group.Links = model.Links{"self": r.RequestURI, "create-service": fmt.Sprintf("%s/%v", r.RequestURI, "services")}
+		group.Links = model.Links{"self": r.RequestURI, "account": fmt.Sprintf("/api/egw/accounts/%v", vars["account"]), "create-service": fmt.Sprintf("%s/%v", r.RequestURI, "services")}
 		util.RespondJSON(w, http.StatusOK, group, util.EmptyHeader)
+		return
+	}
+	util.RespondError(w, err)
+}
+
+func (g *EGW) showAccount(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	account, err := db.ReadAccount(r.Context(), g.client, vars["account"])
+	if err == nil {
+		account.Links = model.Links{"self": r.RequestURI}
+		util.RespondJSON(w, http.StatusOK, account, util.EmptyHeader)
 		return
 	}
 	util.RespondError(w, err)
@@ -235,4 +246,5 @@ func SetupRoutes(router *mux.Router, prefix string, client client.Client, alloca
 	egwRouter.HandleFunc("/accounts/{account}/services/{service}", egw.showService).Methods(http.MethodGet)
 	egwRouter.HandleFunc("/accounts/{account}/groups/{group}/services", egw.createService).Methods(http.MethodPost)
 	egwRouter.HandleFunc("/accounts/{account}/groups/{group}", egw.showGroup).Methods(http.MethodGet)
+	egwRouter.HandleFunc("/accounts/{account}", egw.showAccount).Methods(http.MethodGet)
 }

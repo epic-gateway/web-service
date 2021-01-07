@@ -23,6 +23,12 @@ func CreateEndpoint(ctx context.Context, cl client.Client, namespace string, ep 
 	return cl.Create(ctx, &ep)
 }
 
+// ReadAccount reads one account from the cluster.
+func ReadAccount(ctx context.Context, cl client.Client, accountName string) (*model.Account, error) {
+	maccount := model.NewAccount()
+	return &maccount, cl.Get(ctx, client.ObjectKey{Namespace: "egw-" + accountName, Name: accountName}, &maccount.Account)
+}
+
 // ReadGroup reads one service group from the cluster.
 func ReadGroup(ctx context.Context, cl client.Client, accountName string, name string) (*model.Group, error) {
 	mgroup := model.NewGroup()

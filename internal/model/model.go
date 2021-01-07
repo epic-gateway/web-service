@@ -9,6 +9,20 @@ import (
 // strings.
 type Links map[string]string
 
+// Account represents an account on the wire.
+type Account struct {
+	Links   Links         `json:"link"`
+	Account egwv1.Account `json:"account"`
+}
+
+// NewAccount configures a new Account instance.
+func NewAccount() Account {
+	return Account{
+		Links:   Links{},
+		Account: egwv1.Account{},
+	}
+}
+
 // Group represents a Service Group on the wire.
 type Group struct {
 	Links Links              `json:"link"`
