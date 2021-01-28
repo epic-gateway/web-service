@@ -6,8 +6,8 @@ SHELL:=/bin/bash
 TAG ?= ${REPO}/${PREFIX}:${SUFFIX}
 DOCKERFILE ?= build/package/Dockerfile
 
-ifndef GITLAB_TOKEN
-$(error GITLAB_TOKEN not set. It must contain a gitlab Personal Access Token with repo read access)
+ifndef GITLAB_AUTHN
+$(error GITLAB_AUTHN not set. It must contain a gitlab Personal Access Token with repo read access)
 endif
 
 ##@ Default Goal
@@ -33,8 +33,8 @@ check: ## Run some code quality checks
 run: ## Run the service using "go run" (KUBECONFIG needs to be set)
 	go run ./main.go
 
-image:	check ## Build the Docker image
-	@docker build --build-arg=GITLAB_TOKEN --file=${DOCKERFILE} --tag=${TAG} ${DOCKER_BUILD_OPTIONS} .
+image:	## Build the Docker image
+	@docker build --build-arg=GITLAB_AUTHN --file=${DOCKERFILE} --tag=${TAG} ${DOCKER_BUILD_OPTIONS} .
 
 install:	image ## Push the image to the registry
 	docker push ${TAG}

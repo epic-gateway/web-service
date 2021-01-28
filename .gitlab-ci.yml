@@ -1,0 +1,11 @@
+docker:
+  image: docker:latest
+  services:
+  - docker:dind
+
+  before_script:
+  - apk add bash make
+  - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+
+  script:
+  - make SUFFIX=ci-${CI_COMMIT_BRANCH} GITLAB_AUTHN=gitlab-ci-token:${CI_JOB_TOKEN} install
