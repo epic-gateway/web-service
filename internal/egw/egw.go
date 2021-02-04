@@ -118,6 +118,7 @@ func (g *EGW) deleteService(w http.ResponseWriter, r *http.Request) {
 		util.RespondJSON(w, http.StatusOK, map[string]string{"message": "delete successful"}, map[string]string{})
 		return
 	}
+	fmt.Printf("DELETE service failed %s/%s %#v\n", vars["account"], vars["service"], err)
 	util.RespondError(w, err)
 }
 
@@ -204,6 +205,7 @@ func (g *EGW) deleteEndpoint(w http.ResponseWriter, r *http.Request) {
 		util.RespondJSON(w, http.StatusOK, map[string]string{"message": "endpoint deleted"}, util.EmptyHeader)
 		return
 	}
+	fmt.Printf("DELETE endpoint failed %s/%s %#v\n", vars["account"], vars["endpoint"], err)
 	util.RespondError(w, err)
 }
 
