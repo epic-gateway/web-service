@@ -53,7 +53,7 @@ func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
 	err = json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
 		fmt.Printf("POST service failed %#v\n", err)
-		util.RespondError(w, err)
+		util.RespondBad(w, err)
 		return
 	}
 
@@ -62,7 +62,7 @@ func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
 	group, err := db.ReadGroup(r.Context(), g.client, vars["account"], vars["group"])
 	if err != nil {
 		fmt.Printf("POST service failed %#v\n", err)
-		util.RespondError(w, err)
+		util.RespondNotFound(w, err)
 		return
 	}
 
@@ -107,7 +107,7 @@ func (g *EGW) showService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Printf("GET service failed %s/%s %#v\n", vars["account"], vars["service"], err)
-	util.RespondError(w, err)
+	util.RespondNotFound(w, err)
 }
 
 func (g *EGW) deleteService(w http.ResponseWriter, r *http.Request) {
@@ -194,7 +194,7 @@ func (g *EGW) showEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Printf("GET endpoint failed %s/%s %#v\n", vars["account"], vars["endpoint"], err)
-	util.RespondError(w, err)
+	util.RespondNotFound(w, err)
 }
 
 func (g *EGW) deleteEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -217,7 +217,7 @@ func (g *EGW) showGroup(w http.ResponseWriter, r *http.Request) {
 		util.RespondJSON(w, http.StatusOK, group, util.EmptyHeader)
 		return
 	}
-	util.RespondError(w, err)
+	util.RespondNotFound(w, err)
 }
 
 func (g *EGW) showAccount(w http.ResponseWriter, r *http.Request) {
@@ -228,7 +228,7 @@ func (g *EGW) showAccount(w http.ResponseWriter, r *http.Request) {
 		util.RespondJSON(w, http.StatusOK, account, util.EmptyHeader)
 		return
 	}
-	util.RespondError(w, err)
+	util.RespondNotFound(w, err)
 }
 
 // NewEGW configures a new EGW web service instance.
