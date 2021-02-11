@@ -35,3 +35,9 @@ image:	## Build the Docker image (GITLAB_AUTHN needs to be set)
 
 install:	image ## Push the image to the registry
 	docker push ${TAG}
+
+.PHONY: manifest
+manifest: deploy/egw-web-service.yaml
+
+deploy/egw-web-service.yaml: config/egw-web-service.yaml
+	sed "s registry.gitlab.com/acnodal/egw-web-service:unknown ${TAG} " < $^ > $@
