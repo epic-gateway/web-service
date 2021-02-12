@@ -2,8 +2,10 @@ package controllers
 
 import (
 	"context"
+	"net"
 
 	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -36,10 +38,29 @@ func (r *ServicePrefixReconciler) Reconcile(req ctrl.Request) (ctrl.Result, erro
 		return result, err
 	}
 
+	// Read the set of LBs that belong to this SP
+	labelSelector := labels.SelectorFromSet(map[string]string{egwv1.OwningServicePrefixLabel: req.Name})
+	listOps := client.ListOptions{Namespace: "", LabelSelector: labelSelector}
+	lbs := egwv1.LoadBalancerList{}
+	if err := r.List(ctx, &lbs, &listOps); err != nil {
+		return result, err
+	}
 
 	// Tell the allocator about the prefix
 	if err := r.Allocator.AddPool(sp); err != nil {
 		return result, err
+	}
+
+	// "Warm up" the allocator with the previously-allocated addresses
+	// from the list of LBs
+	for _, lb := range lbs.Items {
+		if existingIP := net.ParseIP(lb.Spec.PublicAddress); existingIP != nil {
+			if _, err := r.Allocator.Assign(lb.Name, existingIP, lb.Spec.PublicPorts, ""); err != nil {
+				r.Log.Info("Error assigning IP", "IP", existingIP, "error", err)
+			} else {
+				r.Log.Info("Previously allocated", "IP", existingIP, "service", lb.Namespace+"/"+lb.Name)
+			}
+		}
 	}
 
 	return result, nil
