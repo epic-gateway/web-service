@@ -66,6 +66,16 @@ func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Give the LB a random name so we don't collide with other LBs in
+	// the group
+	name, err := uuid.NewRandom()
+	if err != nil {
+		fmt.Printf("generating uuid: %s\n", err)
+		util.RespondError(w, err)
+		return
+	}
+	body.Service.Name = name.String()
+
 	// allocate a public IP address for the service
 	addr, err := g.allocator.AllocateFromPool(body.Service.Name, group.Group.Labels[egwv1.OwningServicePrefixLabel], body.Service.Spec.PublicPorts, "")
 	if err != nil {
