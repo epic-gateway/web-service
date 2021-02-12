@@ -8,20 +8,16 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"acnodal.io/egw-ws/internal/allocator"
+
 	egwv1 "gitlab.com/acnodal/egw-resource-model/api/v1"
 )
-
-// ServicePrefixCallbacks are how this controller notifies the control
-// plane of object changes.
-type ServicePrefixCallbacks interface {
-	ServicePrefixesChanged([]egwv1.ServicePrefix) error
-}
 
 // ServicePrefixReconciler reconciles a ServicePrefix object
 type ServicePrefixReconciler struct {
 	client.Client
 	Log       logr.Logger
-	Callbacks ServicePrefixCallbacks
+	Allocator *allocator.Allocator
 	Scheme    *runtime.Scheme
 }
 
@@ -33,15 +29,18 @@ type ServicePrefixReconciler struct {
 func (r *ServicePrefixReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	result := ctrl.Result{}
 	ctx := context.TODO()
-	_ = r.Log.WithValues("serviceprefix", req.NamespacedName)
 
-	listOps := client.ListOptions{Namespace: ""}
-	list := egwv1.ServicePrefixList{}
-	if err := r.List(ctx, &list, &listOps); err != nil {
+	// Read the prefix that caused the event
+	sp := egwv1.ServicePrefix{}
+	if err := r.Get(ctx, req.NamespacedName, &sp); err != nil {
 		return result, err
 	}
 
-	r.Callbacks.ServicePrefixesChanged(list.Items)
+
+	// Tell the allocator about the prefix
+	if err := r.Allocator.AddPool(sp); err != nil {
+		return result, err
+	}
 
 	return result, nil
 }

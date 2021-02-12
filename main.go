@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"log"
 	"net/http"
 	"os"
 
@@ -33,17 +32,6 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
-type callbacks struct {
-	allocator *allocator.Allocator
-}
-
-func (cb callbacks) ServicePrefixesChanged(prefixes []egwv1.ServicePrefix) error {
-	if err := cb.allocator.SetPools(prefixes); err != nil {
-		log.Fatal(err)
-	}
-	return nil
-}
-
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
@@ -72,10 +60,6 @@ func main() {
 	// set up address allocator
 	allocator := allocator.NewAllocator()
 
-	callbacks := callbacks{
-		allocator: allocator,
-	}
-
 	// set up web service
 	setupLog.Info("starting web service")
 	r := mux.NewRouter()
@@ -88,7 +72,7 @@ func main() {
 	if err = (&controllers.ServicePrefixReconciler{
 		Client:    mgr.GetClient(),
 		Log:       ctrl.Log.WithName("controllers").WithName("ServicePrefix"),
-		Callbacks: callbacks,
+		Allocator: allocator,
 		Scheme:    mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ServicePrefix")

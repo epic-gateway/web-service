@@ -43,27 +43,17 @@ func NewAllocator() *Allocator {
 	}
 }
 
-// SetPools updates the set of address pools that the allocator owns.
-func (a *Allocator) SetPools(groups []egwv1.ServicePrefix) error {
-	pools, err := parseConfig(groups)
+// AddPool adds an address pool to the allocator.
+func (a *Allocator) AddPool(sp egwv1.ServicePrefix) error {
+	pool, err := parsePrefix(sp.Name, sp.Spec)
 	if err != nil {
-		return err
+		return fmt.Errorf("parsing address pool #%s: %s", sp.Name, err)
 	}
-
-	for n := range a.pools {
-		if pools[n] == nil {
-			poolCapacity.DeleteLabelValues(n)
-			poolActive.DeleteLabelValues(n)
-		}
-	}
-
-	a.pools = pools
+	a.pools[sp.Name] = pool
 
 	// Refresh or initiate stats
-	for n, p := range a.pools {
-		poolCapacity.WithLabelValues(n).Set(float64(p.Size()))
-		poolActive.WithLabelValues(n).Set(float64(p.InUse()))
-	}
+	poolCapacity.WithLabelValues(sp.Name).Set(float64(pool.Size()))
+	poolActive.WithLabelValues(sp.Name).Set(float64(pool.InUse()))
 
 	return nil
 }
@@ -221,34 +211,28 @@ func poolFor(pools map[string]Pool, ip net.IP) string {
 	return ""
 }
 
-func parseConfig(groups []egwv1.ServicePrefix) (map[string]Pool, error) {
-	pools := map[string]Pool{}
+func (a *Allocator) parseConfig(group egwv1.ServicePrefix) (Pool, error) {
+	poolName := group.Name
 
-	for i, group := range groups {
-		poolName := group.Name
-
-		pool, err := parsePrefix(poolName, group.Spec)
-		if err != nil {
-			return nil, fmt.Errorf("parsing address pool #%d: %s", i+1, err)
-		}
-
-		// Check that the pool isn't already defined
-		if pools[poolName] != nil {
-			return nil, fmt.Errorf("duplicate definition of pool %q", poolName)
-		}
-
-		// Check that this pool doesn't overlap with any of the previous
-		// ones
-		for name, r := range pools {
-			if pool.Overlaps(r) {
-				return nil, fmt.Errorf("pool %q overlaps with already defined pool %q", poolName, name)
-			}
-		}
-
-		pools[poolName] = pool
+	pool, err := parsePrefix(poolName, group.Spec)
+	if err != nil {
+		return nil, fmt.Errorf("parsing address pool %s: %s", poolName, err)
 	}
 
-	return pools, nil
+	// Check that the pool isn't already defined
+	if a.pools[poolName] != nil {
+		return nil, fmt.Errorf("duplicate definition of pool %q", poolName)
+	}
+
+	// Check that this pool doesn't overlap with any of the previous
+	// ones
+	for name, r := range a.pools {
+		if pool.Overlaps(r) {
+			return nil, fmt.Errorf("pool %q overlaps with already defined pool %q", poolName, name)
+		}
+	}
+
+	return pool, nil
 }
 
 func parsePrefix(name string, prefix egwv1.ServicePrefixSpec) (Pool, error) {
