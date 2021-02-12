@@ -112,14 +112,24 @@ func (g *EGW) showService(w http.ResponseWriter, r *http.Request) {
 
 func (g *EGW) deleteService(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	err := db.DeleteService(r.Context(), g.client, vars["account"], vars["service"])
-	if err == nil {
-		fmt.Printf("DELETE service %s/%s\n", vars["account"], vars["service"])
-		util.RespondJSON(w, http.StatusOK, map[string]string{"message": "delete successful"}, map[string]string{})
+
+	// Free the Service's listener address
+	if !g.allocator.Unassign(vars["service"]) {
+		fmt.Printf("ERROR freeing address from %s/%s\n", vars["account"], vars["service"])
+		// Continue - we want to delete the CR even if something went
+		// wrong with this Unassign
+	}
+
+	// Delete the CR
+	if err := db.DeleteService(r.Context(), g.client, vars["account"], vars["service"]); err != nil {
+		fmt.Printf("DELETE service failed %s/%s %#v\n", vars["account"], vars["service"], err)
+		util.RespondError(w, err)
 		return
 	}
-	fmt.Printf("DELETE service failed %s/%s %#v\n", vars["account"], vars["service"], err)
-	util.RespondError(w, err)
+
+	fmt.Printf("DELETE service %s/%s\n", vars["account"], vars["service"])
+	util.RespondJSON(w, http.StatusOK, map[string]string{"message": "delete successful"}, map[string]string{})
+	return
 }
 
 func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
