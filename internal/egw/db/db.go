@@ -5,23 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	egwv1 "gitlab.com/acnodal/egw-resource-model/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"acnodal.io/egw-ws/internal/model"
 )
-
-// CreateService writes a load balancer service to the cluster.
-func CreateService(ctx context.Context, cl client.Client, namespace string, service egwv1.LoadBalancer) error {
-	service.ObjectMeta.Namespace = "egw-" + namespace
-	return cl.Create(ctx, &service)
-}
-
-// CreateEndpoint writes an endpoint CR to the cluster.
-func CreateEndpoint(ctx context.Context, cl client.Client, namespace string, ep egwv1.RemoteEndpoint) error {
-	ep.ObjectMeta.Namespace = "egw-" + namespace
-	return cl.Create(ctx, &ep)
-}
 
 // ReadAccount reads one account from the cluster.
 func ReadAccount(ctx context.Context, cl client.Client, accountName string) (*model.Account, error) {

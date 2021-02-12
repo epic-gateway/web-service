@@ -92,8 +92,11 @@ func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
 	body.Service.Labels[egwv1.OwningServiceGroupLabel] = vars["group"]
 	body.Service.Labels[egwv1.OwningServicePrefixLabel] = group.Group.Labels[egwv1.OwningServicePrefixLabel]
 
-	// create the service CR
-	err = db.CreateService(r.Context(), g.client, vars["account"], body.Service)
+	// This LB will live in the same NS as its owning group
+	body.Service.Namespace = group.Group.Namespace
+
+	// Create the LB CR
+	err = g.client.Create(r.Context(), &body.Service)
 	if err != nil {
 		fmt.Printf("POST service failed %#v\n", err)
 		util.RespondError(w, err)
@@ -181,8 +184,11 @@ func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 		body.Endpoint.Name = fmt.Sprintf("%s-%s", service.Service.Name, name.String())
 	}
 
+	// This endpoint will live in the same NS as its owning LB
+	body.Endpoint.Namespace = service.Service.Namespace
+
 	// Create the endpoint
-	err = db.CreateEndpoint(ctx, g.client, vars["account"], body.Endpoint)
+	err = g.client.Create(ctx, &body.Endpoint)
 	if err != nil {
 		matches := duplicateRE.FindStringSubmatch(err.Error())
 		if len(matches) > 0 {
