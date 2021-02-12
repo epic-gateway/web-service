@@ -75,11 +75,12 @@ func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
 	}
 	body.Service.Spec.PublicAddress = addr.String()
 
-	// make sure that the link to the owning service group is set
+	// Set links to the owning service group and prefix
 	if body.Service.Labels == nil {
 		body.Service.Labels = map[string]string{}
 	}
 	body.Service.Labels[egwv1.OwningServiceGroupLabel] = vars["group"]
+	body.Service.Labels[egwv1.OwningServicePrefixLabel] = group.Group.Labels[egwv1.OwningServicePrefixLabel]
 
 	// create the service CR
 	err = db.CreateService(r.Context(), g.client, vars["account"], body.Service)
