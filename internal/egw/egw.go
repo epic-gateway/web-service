@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	egwv1 "gitlab.com/acnodal/egw-resource-model/api/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"acnodal.io/egw-ws/internal/allocator"
@@ -31,13 +32,15 @@ type EGW struct {
 // ServiceCreateRequest contains the data from a web service request
 // to create a Service.
 type ServiceCreateRequest struct {
-	Service egwv1.LoadBalancer
+	ClusterID types.UID `json:"cluster-id"`
+	Service   egwv1.LoadBalancer
 }
 
 // EndpointCreateRequest contains the data from a web service request
 // to create a Endpoint.
 type EndpointCreateRequest struct {
-	Endpoint egwv1.RemoteEndpoint
+	ClusterID types.UID `json:"cluster-id"`
+	Endpoint  egwv1.RemoteEndpoint
 }
 
 // createService handles PureLB service announcements. They're sent
@@ -52,6 +55,13 @@ func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
+		fmt.Printf("POST service failed %#v\n", err)
+		util.RespondBad(w, err)
+		return
+	}
+
+	// Validate the client cluster ID
+	if _, err = uuid.Parse(string(body.ClusterID)); err != nil {
 		fmt.Printf("POST service failed %#v\n", err)
 		util.RespondBad(w, err)
 		return
@@ -158,6 +168,13 @@ func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 	// Parse request
 	err = json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
+		util.RespondBad(w, err)
+		return
+	}
+
+	// Validate the client cluster ID
+	if _, err = uuid.Parse(string(body.ClusterID)); err != nil {
+		fmt.Printf("POST service failed %#v\n", err)
 		util.RespondBad(w, err)
 		return
 	}
