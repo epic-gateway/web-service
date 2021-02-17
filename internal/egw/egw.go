@@ -126,7 +126,7 @@ func (g *EGW) showService(w http.ResponseWriter, r *http.Request) {
 			"group":           fmt.Sprintf("/api/egw/accounts/%v/groups/%v", vars["account"], service.Service.Labels[egwv1.OwningServiceGroupLabel]), // FIXME: use gorilla mux "registered url" to build these urls
 			"create-endpoint": fmt.Sprintf("%s/endpoints", r.RequestURI),
 		}
-		fmt.Printf("GET service %#v\n", service)
+		fmt.Printf("GET service OK %s/%s\n", vars["account"], vars["service"])
 		util.RespondJSON(w, http.StatusOK, service, util.EmptyHeader)
 		return
 	}
@@ -234,6 +234,7 @@ func (g *EGW) showEndpoint(w http.ResponseWriter, r *http.Request) {
 	ep, err := db.ReadEndpoint(r.Context(), g.client, vars["account"], vars["endpoint"])
 	if err == nil {
 		ep.Links = model.Links{"self": r.RequestURI, "service": fmt.Sprintf("/api/egw/accounts/%v/services/%v", vars["account"], vars["service"])}
+		fmt.Printf("GET endpoint OK %s/%s\n", vars["account"], vars["endpoint"])
 		util.RespondJSON(w, http.StatusOK, ep, util.EmptyHeader)
 		return
 	}
