@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	egwv1 "gitlab.com/acnodal/egw-resource-model/api/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -45,6 +46,10 @@ type ServiceCreateRequest struct {
 type EndpointCreateRequest struct {
 	ClusterID types.UID `json:"cluster-id"`
 	Endpoint  egwv1.RemoteEndpoint
+}
+
+func toLower(protocol v1.Protocol) string {
+	return strings.ToLower(string(protocol))
 }
 
 // createService handles PureLB service announcements. They're sent
@@ -195,7 +200,7 @@ func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 	if body.Endpoint.Name == "" {
 		raw := make([]byte, 8, 8)
 		_, _ = rand.Read(raw)
-		body.Endpoint.Name = fmt.Sprintf("%s-%d-%s-%s", rfc1123Cleaner.Replace(body.Endpoint.Spec.Address), body.Endpoint.Spec.Port.Port, body.Endpoint.Spec.Port.Protocol, hex.EncodeToString(raw))
+		body.Endpoint.Name = fmt.Sprintf("%s-%d-%s-%s", rfc1123Cleaner.Replace(body.Endpoint.Spec.Address), body.Endpoint.Spec.Port.Port, toLower(body.Endpoint.Spec.Port.Protocol), hex.EncodeToString(raw))
 	}
 
 	// This endpoint will live in the same NS as its owning LB
