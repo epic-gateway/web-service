@@ -2,8 +2,10 @@ package main
 
 import (
 	"flag"
+	"math/rand"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gorilla/mux"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -27,6 +29,9 @@ var (
 )
 
 func init() {
+	// Seed the RNG so we can generate pseudo-random name suffixes
+	rand.Seed(time.Now().UTC().UnixNano())
+
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(egwv1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme

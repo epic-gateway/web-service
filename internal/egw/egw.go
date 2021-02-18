@@ -2,10 +2,13 @@ package egw
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -20,7 +23,8 @@ import (
 )
 
 var (
-	duplicateRE = regexp.MustCompile(`^.*duplicate endpoint: (.*)$`)
+	duplicateRE    = regexp.MustCompile(`^.*duplicate endpoint: (.*)$`)
+	rfc1123Cleaner = strings.NewReplacer(".", "-", ":", "-")
 )
 
 // EGW implements the server side of the EGW web service protocol.
@@ -76,15 +80,11 @@ func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Give the LB a random name so we don't collide with other LBs in
-	// the group
-	name, err := uuid.NewRandom()
-	if err != nil {
-		fmt.Printf("generating uuid: %s\n", err)
-		util.RespondError(w, err)
-		return
-	}
-	body.Service.Name = name.String()
+	// Give the LB a random readable name so we don't collide with other
+	// LBs in the group
+	raw := make([]byte, 8, 8)
+	_, _ = rand.Read(raw)
+	body.Service.Name += "-" + hex.EncodeToString(raw)
 
 	// allocate a public IP address for the service
 	addr, err := g.allocator.AllocateFromPool(body.Service.Name, group.Group.Labels[egwv1.OwningServicePrefixLabel], body.Service.Spec.PublicPorts, "")
@@ -190,15 +190,12 @@ func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 	// for the set of endpoints that belong to a given LB.
 	body.Endpoint.Labels = map[string]string{egwv1.OwningLoadBalancerLabel: service.Service.Name}
 
-	// Give the endpoint a name
+	// Give the endpoint a name that's readable but also won't collide
+	// with others
 	if body.Endpoint.Name == "" {
-		name, err := uuid.NewRandom()
-		if err != nil {
-			fmt.Printf("generating uuid: %s\n", err)
-			util.RespondError(w, err)
-			return
-		}
-		body.Endpoint.Name = fmt.Sprintf("%s-%s", service.Service.Name, name.String())
+		raw := make([]byte, 8, 8)
+		_, _ = rand.Read(raw)
+		body.Endpoint.Name = fmt.Sprintf("%s-%d-%s-%s", rfc1123Cleaner.Replace(body.Endpoint.Spec.Address), body.Endpoint.Spec.Port.Port, body.Endpoint.Spec.Port.Protocol, hex.EncodeToString(raw))
 	}
 
 	// This endpoint will live in the same NS as its owning LB
