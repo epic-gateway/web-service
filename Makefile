@@ -41,3 +41,4 @@ manifest: deploy/egw-web-service.yaml
 
 deploy/egw-web-service.yaml: config/egw-web-service.yaml
 	sed "s registry.gitlab.com/acnodal/egw-web-service:unknown ${TAG} " < $^ > $@
+	cp deploy/egw-web-service.yaml deploy/egw-web-service-${SUFFIX}.yaml
