@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"acnodal.io/egw-ws/internal/model"
@@ -60,6 +61,12 @@ func ReadEndpoint(ctx context.Context, cl client.Client, namespace string, name 
 func DeleteService(ctx context.Context, cl client.Client, namespace string, name string) error {
 	service, err := ReadService(ctx, cl, namespace, name)
 	if err != nil {
+		if errors.IsNotFound(err) {
+			// Request object not found. Not great, but the client wanted
+			// the object gone and it's gone.
+			fmt.Printf("%s/%s not found. Ignoring since object must be deleted\n", namespace, name)
+			return nil
+		}
 		return err
 	}
 	return cl.Delete(ctx, &service.Service)
@@ -69,6 +76,12 @@ func DeleteService(ctx context.Context, cl client.Client, namespace string, name
 func DeleteEndpoint(ctx context.Context, cl client.Client, namespace string, name string) error {
 	endpoint, err := ReadEndpoint(ctx, cl, namespace, name)
 	if err != nil {
+		if errors.IsNotFound(err) {
+			// Request object not found. Not great, but the client wanted
+			// the object gone and it's gone.
+			fmt.Printf("%s/%s not found. Ignoring since object must be deleted]n", namespace, name)
+			return nil
+		}
 		return err
 	}
 	return cl.Delete(ctx, &endpoint.Endpoint)
