@@ -31,7 +31,7 @@ func ReadService(ctx context.Context, cl client.Client, namespace string, name s
 		err = cl.Get(ctx, client.ObjectKey{Namespace: "egw-" + namespace, Name: name}, &mservice.Service)
 		if err != nil {
 			fmt.Printf("problem reading service %s/%s: %#v\n", namespace, name, err)
-			if tries > 0 {
+			if tries > 1 {
 				time.Sleep(1 * time.Second)
 			}
 		}
@@ -48,7 +48,7 @@ func ReadEndpoint(ctx context.Context, cl client.Client, namespace string, name 
 		err = cl.Get(ctx, client.ObjectKey{Namespace: "egw-" + namespace, Name: name}, &mendpoint.Endpoint)
 		if err != nil {
 			fmt.Printf("problem reading endpoint %s/%s: %#v\n", namespace, name, err)
-			if tries > 0 {
+			if tries > 1 {
 				time.Sleep(1 * time.Second)
 			}
 		}
