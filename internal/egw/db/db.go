@@ -26,7 +26,7 @@ func ReadGroup(ctx context.Context, cl client.Client, accountName string, name s
 func ReadService(ctx context.Context, cl client.Client, namespace string, name string) (*model.Service, error) {
 	var err error
 	mservice := model.NewService()
-	tries := 3
+	tries := 2
 	for err = fmt.Errorf(""); err != nil && tries > 0; tries-- {
 		err = cl.Get(ctx, client.ObjectKey{Namespace: "egw-" + namespace, Name: name}, &mservice.Service)
 		if err != nil {
@@ -43,7 +43,7 @@ func ReadService(ctx context.Context, cl client.Client, namespace string, name s
 func ReadEndpoint(ctx context.Context, cl client.Client, namespace string, name string) (*model.Endpoint, error) {
 	var err error
 	mendpoint := model.NewEndpoint()
-	tries := 3
+	tries := 2
 	for err = fmt.Errorf(""); err != nil && tries > 0; tries-- {
 		err = cl.Get(ctx, client.ObjectKey{Namespace: "egw-" + namespace, Name: name}, &mendpoint.Endpoint)
 		if err != nil {
