@@ -79,7 +79,7 @@ func DeleteEndpoint(ctx context.Context, cl client.Client, namespace string, nam
 		if errors.IsNotFound(err) {
 			// Request object not found. Not great, but the client wanted
 			// the object gone and it's gone.
-			fmt.Printf("%s/%s not found. Ignoring since object must be deleted]n", namespace, name)
+			fmt.Printf("%s/%s not found. Ignoring since object must be deleted\n", namespace, name)
 			return nil
 		}
 		return err
