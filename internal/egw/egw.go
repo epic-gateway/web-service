@@ -24,7 +24,8 @@ import (
 )
 
 var (
-	duplicateRE    = regexp.MustCompile(`^.*duplicate endpoint: (.*)$`)
+	duplicateLB    = regexp.MustCompile(`^loadbalancers.egw.acnodal.io "(.*)" already exists$`)
+	duplicateRep   = regexp.MustCompile(`^.*duplicate endpoint: (.*)$`)
 	rfc1123Cleaner = strings.NewReplacer(".", "-", ":", "-")
 )
 
@@ -110,16 +111,33 @@ func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
 	// This LB will live in the same NS as its owning group
 	body.Service.Namespace = group.Group.Namespace
 
+	selfURL := fmt.Sprintf("/api/egw/accounts/%v/services/%v", vars["account"], body.Service.ObjectMeta.Name)
+
 	// Create the LB CR
 	err = g.client.Create(r.Context(), &body.Service)
 	if err != nil {
+		matches := duplicateLB.FindStringSubmatch(err.Error())
+		if len(matches) > 0 {
+			fmt.Printf("Duplicate service %#v: %s\n", body.Service, err)
+
+			// We already had that endpoint, but we can return what we hope
+			// the client needs to set up the tunnels on its end
+			util.RespondConflict(
+				w,
+				map[string]interface{}{"message": err.Error(), "link": model.Links{"self": selfURL}},
+				map[string]string{"Location": selfURL},
+			)
+			return
+		}
+
+		// Something else went wrong
 		fmt.Printf("POST service failed %#v\n", err)
 		util.RespondError(w, err)
 		return
 	}
 
 	fmt.Printf("POST service created %v %#v\n", vars["account"], body.Service)
-	http.Redirect(w, r, fmt.Sprintf("/api/egw/accounts/%v/services/%v", vars["account"], body.Service.ObjectMeta.Name), http.StatusFound)
+	http.Redirect(w, r, selfURL, http.StatusFound)
 }
 
 func (g *EGW) showService(w http.ResponseWriter, r *http.Request) {
@@ -209,7 +227,7 @@ func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 	// Create the endpoint
 	err = g.client.Create(ctx, &body.Endpoint)
 	if err != nil {
-		matches := duplicateRE.FindStringSubmatch(err.Error())
+		matches := duplicateRep.FindStringSubmatch(err.Error())
 		if len(matches) > 0 {
 			fmt.Printf("Duplicate endpoint %#v: %s\n", body.Endpoint, err)
 
