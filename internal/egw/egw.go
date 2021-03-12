@@ -86,11 +86,18 @@ func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Give the LB a random readable name so we don't collide with other
-	// LBs in the group
-	raw := make([]byte, 8, 8)
-	_, _ = rand.Read(raw)
-	body.Service.Name += "-" + hex.EncodeToString(raw)
+	// If this LB can not be shared then give it a random readable name
+	// so it doesn't collide with other LBs in the group that might be
+	// created by other services with the same name. If the LB can be
+	// shared then leave its name alone so other PureLB services with
+	// the same name can find it. When they try to create their services
+	// they'll get a 409 Conflict response that points them at this
+	// service.
+	if !group.Group.Spec.CanBeShared {
+		raw := make([]byte, 8, 8)
+		_, _ = rand.Read(raw)
+		body.Service.Name += "-" + hex.EncodeToString(raw)
+	}
 
 	// allocate a public IP address for the service
 	addr, err := g.allocator.AllocateFromPool(body.Service.Name, group.Group.Labels[egwv1.OwningServicePrefixLabel], body.Service.Spec.PublicPorts, "")
