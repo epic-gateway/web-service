@@ -10,11 +10,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	egwv1 "gitlab.com/acnodal/egw-resource-model/api/v1"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"acnodal.io/egw-ws/internal/allocator"
@@ -38,14 +36,14 @@ type EGW struct {
 // ServiceCreateRequest contains the data from a web service request
 // to create a Service.
 type ServiceCreateRequest struct {
-	ClusterID types.UID `json:"cluster-id"`
+	ClusterID string `json:"cluster-id"`
 	Service   egwv1.LoadBalancer
 }
 
 // EndpointCreateRequest contains the data from a web service request
 // to create a Endpoint.
 type EndpointCreateRequest struct {
-	ClusterID types.UID `json:"cluster-id"`
+	ClusterID string `json:"cluster-id"`
 	Endpoint  egwv1.RemoteEndpoint
 }
 
@@ -71,7 +69,7 @@ func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate the client cluster ID
-	if _, err = uuid.Parse(string(body.ClusterID)); err != nil {
+	if body.ClusterID == "" {
 		fmt.Printf("POST service failed %#v\n", err)
 		util.RespondBad(w, err)
 		return
@@ -203,7 +201,7 @@ func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate the client cluster ID
-	if _, err = uuid.Parse(string(body.ClusterID)); err != nil {
+	if body.ClusterID == "" {
 		fmt.Printf("POST service failed %#v\n", err)
 		util.RespondBad(w, err)
 		return
