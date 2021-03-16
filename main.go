@@ -15,8 +15,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"acnodal.io/egw-ws/internal/allocator"
-	"acnodal.io/egw-ws/internal/controllers"
 	"acnodal.io/egw-ws/internal/egw"
 
 	egwv1 "gitlab.com/acnodal/egw-resource-model/api/v1"
@@ -62,27 +60,14 @@ func main() {
 
 	// +kubebuilder:scaffold:builder
 
-	// set up address allocator
-	allocator := allocator.NewAllocator()
-
 	// set up web service
 	setupLog.Info("starting web service")
 	r := mux.NewRouter()
-	egw.SetupRoutes(r, "/api/egw", mgr.GetClient(), allocator)
+	egw.SetupRoutes(r, "/api/egw", mgr.GetClient())
 
 	http.Handle("/", r)
 	go http.ListenAndServe(":8080", nil)
 
-	// launch manager
-	if err = (&controllers.ServicePrefixReconciler{
-		Client:    mgr.GetClient(),
-		Log:       ctrl.Log.WithName("controllers").WithName("ServicePrefix"),
-		Allocator: allocator,
-		Scheme:    mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ServicePrefix")
-		os.Exit(1)
-	}
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")

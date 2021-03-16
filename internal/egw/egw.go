@@ -15,7 +15,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"acnodal.io/egw-ws/internal/allocator"
 	"acnodal.io/egw-ws/internal/egw/db"
 	"acnodal.io/egw-ws/internal/model"
 	"acnodal.io/egw-ws/internal/util"
@@ -29,8 +28,7 @@ var (
 
 // EGW implements the server side of the EGW web service protocol.
 type EGW struct {
-	client    client.Client
-	allocator *allocator.Allocator
+	client client.Client
 }
 
 // ServiceCreateRequest contains the data from a web service request
@@ -97,15 +95,6 @@ func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
 		body.Service.Name += "-" + hex.EncodeToString(raw)
 	}
 
-	// allocate a public IP address for the service
-	addr, err := g.allocator.AllocateFromPool(body.Service.Name, group.Group.Labels[egwv1.OwningServicePrefixLabel], body.Service.Spec.PublicPorts, "")
-	if err != nil {
-		fmt.Printf("POST service failed %#v\n", err)
-		util.RespondError(w, err)
-		return
-	}
-	body.Service.Spec.PublicAddress = addr.String()
-
 	// Set links to the owning service group and prefix
 	if body.Service.Labels == nil {
 		body.Service.Labels = map[string]string{}
@@ -164,13 +153,6 @@ func (g *EGW) showService(w http.ResponseWriter, r *http.Request) {
 
 func (g *EGW) deleteService(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-
-	// Free the Service's listener address
-	if !g.allocator.Unassign(vars["service"]) {
-		fmt.Printf("ERROR freeing address from %s/%s\n", vars["account"], vars["service"])
-		// Continue - we want to delete the CR even if something went
-		// wrong with this Unassign
-	}
 
 	// Delete the CR
 	if err := db.DeleteService(r.Context(), g.client, vars["account"], vars["service"]); err != nil {
@@ -302,14 +284,14 @@ func (g *EGW) showAccount(w http.ResponseWriter, r *http.Request) {
 }
 
 // NewEGW configures a new EGW web service instance.
-func NewEGW(client client.Client, allocator *allocator.Allocator) *EGW {
-	return &EGW{client: client, allocator: allocator}
+func NewEGW(client client.Client) *EGW {
+	return &EGW{client: client}
 }
 
 // SetupRoutes sets up the provided mux.Router to handle the EGW web
 // service routes.
-func SetupRoutes(router *mux.Router, prefix string, client client.Client, allocator *allocator.Allocator) {
-	egw := NewEGW(client, allocator)
+func SetupRoutes(router *mux.Router, prefix string, client client.Client) {
+	egw := NewEGW(client)
 	egwRouter := router.PathPrefix(prefix).Subrouter()
 	egwRouter.HandleFunc("/accounts/{account}/services/{service}/endpoints/{endpoint}", egw.deleteEndpoint).Methods(http.MethodDelete)
 	egwRouter.HandleFunc("/accounts/{account}/services/{service}/endpoints/{endpoint}", egw.showEndpoint).Methods(http.MethodGet)
