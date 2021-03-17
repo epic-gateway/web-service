@@ -51,6 +51,18 @@ func NewService() Service {
 	}
 }
 
+// Cluster represents an LB upstream cluster on the wire.
+type Cluster struct {
+	Links Links `json:"link"`
+}
+
+// NewCluster configures a new Cluster instance.
+func NewCluster() Cluster {
+	return Cluster{
+		Links: Links{},
+	}
+}
+
 // Endpoint represents a load balancer endpoint on the wire.
 type Endpoint struct {
 	Links    Links                `json:"link"`

@@ -1,7 +1,6 @@
 package egw
 
 import (
-	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -21,6 +20,7 @@ import (
 )
 
 var (
+	multiClusterLB = regexp.MustCompile(`has upstream clusters, can't delete`)
 	duplicateLB    = regexp.MustCompile(`^loadbalancers.egw.acnodal.io "(.*)" already exists$`)
 	duplicateRep   = regexp.MustCompile(`^.*duplicate endpoint: (.*)$`)
 	rfc1123Cleaner = strings.NewReplacer(".", "-", ":", "-")
@@ -36,6 +36,12 @@ type EGW struct {
 type ServiceCreateRequest struct {
 	ClusterID string `json:"cluster-id"`
 	Service   egwv1.LoadBalancer
+}
+
+// ClusterCreateRequest contains the data from a web service request
+// to create an upstream cluster.
+type ClusterCreateRequest struct {
+	ClusterID string `json:"cluster-id"`
 }
 
 // EndpointCreateRequest contains the data from a web service request
@@ -142,6 +148,7 @@ func (g *EGW) showService(w http.ResponseWriter, r *http.Request) {
 			"self":            fmt.Sprintf("%s", r.RequestURI),
 			"group":           fmt.Sprintf("/api/egw/accounts/%v/groups/%v", vars["account"], service.Service.Labels[egwv1.OwningServiceGroupLabel]), // FIXME: use gorilla mux "registered url" to build these urls
 			"create-endpoint": fmt.Sprintf("%s/endpoints", r.RequestURI),
+			"create-cluster":  fmt.Sprintf("%s/clusters", r.RequestURI),
 		}
 		fmt.Printf("GET service OK %s/%s\n", vars["account"], vars["service"])
 		util.RespondJSON(w, http.StatusOK, service, util.EmptyHeader)
@@ -156,12 +163,126 @@ func (g *EGW) deleteService(w http.ResponseWriter, r *http.Request) {
 
 	// Delete the CR
 	if err := db.DeleteService(r.Context(), g.client, vars["account"], vars["service"]); err != nil {
+		matches := multiClusterLB.FindStringSubmatch(err.Error())
+		if len(matches) > 0 {
+			fmt.Printf("service %s has clusters: %s\n", vars["service"], err)
+			util.RespondConflict(w, map[string]interface{}{"message": err.Error()}, util.EmptyHeader)
+			return
+		}
+
 		fmt.Printf("DELETE service failed %s/%s %#v\n", vars["account"], vars["service"], err)
 		util.RespondError(w, err)
 		return
 	}
 
-	fmt.Printf("DELETE service %s/%s\n", vars["account"], vars["service"])
+	fmt.Printf("DELETE service OK %s/%s\n", vars["account"], vars["service"])
+	util.RespondJSON(w, http.StatusOK, map[string]string{"message": "delete successful"}, map[string]string{})
+	return
+}
+
+func (g *EGW) createServiceCluster(w http.ResponseWriter, r *http.Request) {
+	var (
+		err     error
+		service *model.Service
+		body    ClusterCreateRequest
+	)
+	vars := mux.Vars(r)
+
+	err = json.NewDecoder(r.Body).Decode(&body)
+	if err != nil {
+		fmt.Printf("POST cluster failed %#v\n", err)
+		util.RespondBad(w, err)
+		return
+	}
+
+	service, err = db.ReadService(r.Context(), g.client, vars["account"], vars["service"])
+	if err != nil {
+		fmt.Printf("POST cluster failed %s/%s/%s %#v\n", vars["account"], vars["service"], body.ClusterID, err)
+		util.RespondNotFound(w, err)
+	}
+
+	selfURL := fmt.Sprintf("/api/egw/accounts/%s/services/%s/clusters/%s", vars["account"], vars["service"], body.ClusterID)
+
+	if err := service.Service.AddUpstream(body.ClusterID); err != nil {
+		fmt.Printf("Duplicate cluster %#v: %s\n", body.ClusterID, err)
+
+		// The LB already had that cluster
+		util.RespondConflict(
+			w,
+			map[string]interface{}{"message": err.Error(), "link": model.Links{"self": selfURL}},
+			map[string]string{"Location": selfURL},
+		)
+		return
+	}
+
+	err = g.client.Update(r.Context(), &service.Service)
+	if err != nil {
+		// Something went wrong
+		fmt.Printf("POST cluster failed %#v\n", err)
+		util.RespondError(w, err)
+		return
+	}
+
+	fmt.Printf("POST cluster OK %s/%s/%s\n", vars["account"], vars["service"], body.ClusterID)
+	http.Redirect(w, r, selfURL, http.StatusFound)
+}
+
+func (g *EGW) showCluster(w http.ResponseWriter, r *http.Request) {
+	var (
+		err     error
+		service *model.Service
+	)
+	vars := mux.Vars(r)
+
+	// 404 if we can't find the service
+	service, err = db.ReadService(r.Context(), g.client, vars["account"], vars["service"])
+	if err != nil {
+		fmt.Printf("GET cluster failed %s/%s/%s %#v\n", vars["account"], vars["service"], vars["cluster"], err)
+		util.RespondNotFound(w, err)
+	}
+
+	// 404 if the service doesn't have a cluster with that name
+	if !service.Service.ContainsUpstream(vars["cluster"]) {
+		err = fmt.Errorf("cluster %s/%s/%s not found", vars["account"], vars["service"], vars["cluster"])
+		fmt.Printf("GET cluster failed %#v\n", err)
+		util.RespondNotFound(w, err)
+		return
+	}
+
+	links := model.Links{"self": r.RequestURI, "service": fmt.Sprintf("/api/egw/accounts/%v/services/%v", vars["account"], vars["service"])}
+	fmt.Printf("GET cluster OK %s/%s/%s\n", vars["account"], vars["service"], vars["cluster"])
+	util.RespondJSON(w, http.StatusOK, model.Cluster{Links: links}, util.EmptyHeader)
+	return
+}
+
+func (g *EGW) deleteCluster(w http.ResponseWriter, r *http.Request) {
+	var (
+		err     error
+		service *model.Service
+	)
+	vars := mux.Vars(r)
+
+	service, err = db.ReadService(r.Context(), g.client, vars["account"], vars["service"])
+	if err != nil {
+		fmt.Printf("GET cluster failed %s/%s/%s %#v\n", vars["account"], vars["service"], vars["cluster"], err)
+		util.RespondNotFound(w, err)
+	}
+
+	if err := service.Service.RemoveUpstream(vars["cluster"]); err != nil {
+		fmt.Printf("GET cluster failed %#v\n", err)
+		util.RespondNotFound(w, err)
+		return
+	}
+
+	err = g.client.Update(r.Context(), &service.Service)
+	if err != nil {
+		// Something went wrong
+		fmt.Printf("POST cluster failed %#v\n", err)
+		util.RespondError(w, err)
+		return
+	}
+
+	fmt.Printf("DELETE cluster OK %s/%s/%s\n", vars["account"], vars["service"], vars["cluster"])
 	util.RespondJSON(w, http.StatusOK, map[string]string{"message": "delete successful"}, map[string]string{})
 	return
 }
@@ -170,7 +291,6 @@ func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	var (
 		body    EndpointCreateRequest
-		ctx     context.Context = context.Background()
 		err     error
 		service *model.Service
 	)
@@ -190,7 +310,7 @@ func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Read the service to which this endpoint will belong
-	service, err = db.ReadService(ctx, g.client, vars["account"], vars["service"])
+	service, err = db.ReadService(r.Context(), g.client, vars["account"], vars["service"])
 	if err != nil {
 		util.RespondNotFound(w, err)
 		return
@@ -212,7 +332,7 @@ func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 	body.Endpoint.Namespace = service.Service.Namespace
 
 	// Create the endpoint
-	err = g.client.Create(ctx, &body.Endpoint)
+	err = g.client.Create(r.Context(), &body.Endpoint)
 	if err != nil {
 		matches := duplicateRep.FindStringSubmatch(err.Error())
 		if len(matches) > 0 {
@@ -220,8 +340,12 @@ func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 
 			// We already had that endpoint, but we can return what we hope
 			// the client needs to set up the tunnels on its end
-			links := model.Links{"self": fmt.Sprintf("%s/%s", r.RequestURI, matches[1])}
-			util.RespondConflict(w, map[string]interface{}{"message": err.Error(), "link": links, "endpoint": body.Endpoint}, util.EmptyHeader)
+			otherURL := fmt.Sprintf("%s/%s", r.RequestURI, matches[1])
+			util.RespondConflict(
+				w,
+				map[string]interface{}{"message": err.Error(), "link": model.Links{"self": otherURL}, "endpoint": body.Endpoint},
+				map[string]string{"Location": otherURL},
+			)
 			return
 		}
 
@@ -296,6 +420,9 @@ func SetupRoutes(router *mux.Router, prefix string, client client.Client) {
 	egwRouter.HandleFunc("/accounts/{account}/services/{service}/endpoints/{endpoint}", egw.deleteEndpoint).Methods(http.MethodDelete)
 	egwRouter.HandleFunc("/accounts/{account}/services/{service}/endpoints/{endpoint}", egw.showEndpoint).Methods(http.MethodGet)
 	egwRouter.HandleFunc("/accounts/{account}/services/{service}/endpoints", egw.createServiceEndpoint).Methods(http.MethodPost)
+	egwRouter.HandleFunc("/accounts/{account}/services/{service}/clusters/{cluster}", egw.deleteCluster).Methods(http.MethodDelete)
+	egwRouter.HandleFunc("/accounts/{account}/services/{service}/clusters/{cluster}", egw.showCluster).Methods(http.MethodGet)
+	egwRouter.HandleFunc("/accounts/{account}/services/{service}/clusters", egw.createServiceCluster).Methods(http.MethodPost)
 	egwRouter.HandleFunc("/accounts/{account}/services/{service}", egw.deleteService).Methods(http.MethodDelete)
 	egwRouter.HandleFunc("/accounts/{account}/services/{service}", egw.showService).Methods(http.MethodGet)
 	egwRouter.HandleFunc("/accounts/{account}/groups/{group}/services", egw.createService).Methods(http.MethodPost)
