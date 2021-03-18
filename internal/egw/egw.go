@@ -136,7 +136,7 @@ func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("POST service created %v %#v\n", vars["account"], body.Service)
+	fmt.Printf("POST service created %v %#v\n", vars["account"], body.Service.Spec)
 	http.Redirect(w, r, selfURL, http.StatusFound)
 }
 
@@ -336,7 +336,7 @@ func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		matches := duplicateRep.FindStringSubmatch(err.Error())
 		if len(matches) > 0 {
-			fmt.Printf("Duplicate endpoint %#v: %s\n", body.Endpoint, err)
+			fmt.Printf("Duplicate endpoint %#v: %s\n", body.Endpoint.Spec, err)
 
 			// We already had that endpoint, but we can return what we hope
 			// the client needs to set up the tunnels on its end
@@ -355,7 +355,7 @@ func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("POST endpoint created %#v\n", body.Endpoint)
+	fmt.Printf("POST endpoint created %#v\n", body.Endpoint.Spec)
 	http.Redirect(w, r, fmt.Sprintf("/api/egw/accounts/%v/services/%v/endpoints/%v", vars["account"], vars["service"], body.Endpoint.Name), http.StatusFound)
 	return
 }
