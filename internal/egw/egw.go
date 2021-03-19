@@ -34,8 +34,7 @@ type EGW struct {
 // ServiceCreateRequest contains the data from a web service request
 // to create a Service.
 type ServiceCreateRequest struct {
-	ClusterID string `json:"cluster-id"`
-	Service   egwv1.LoadBalancer
+	Service egwv1.LoadBalancer
 }
 
 // ClusterCreateRequest contains the data from a web service request
@@ -47,8 +46,7 @@ type ClusterCreateRequest struct {
 // EndpointCreateRequest contains the data from a web service request
 // to create a Endpoint.
 type EndpointCreateRequest struct {
-	ClusterID string `json:"cluster-id"`
-	Endpoint  egwv1.RemoteEndpoint
+	Endpoint egwv1.RemoteEndpoint
 }
 
 func toLower(protocol v1.Protocol) string {
@@ -67,13 +65,6 @@ func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
-		fmt.Printf("POST service failed %#v\n", err)
-		util.RespondBad(w, err)
-		return
-	}
-
-	// Validate the client cluster ID
-	if body.ClusterID == "" {
 		fmt.Printf("POST service failed %#v\n", err)
 		util.RespondBad(w, err)
 		return
@@ -195,6 +186,14 @@ func (g *EGW) createServiceCluster(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate the client cluster ID
+	if body.ClusterID == "" {
+		err := fmt.Errorf("cluster name not provided")
+		fmt.Printf("POST cluster failed %#v\n", err)
+		util.RespondBad(w, err)
+		return
+	}
+
 	service, err = db.ReadService(r.Context(), g.client, vars["account"], vars["service"])
 	if err != nil {
 		fmt.Printf("POST cluster failed %s/%s/%s %#v\n", vars["account"], vars["service"], body.ClusterID, err)
@@ -298,13 +297,6 @@ func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 	// Parse request
 	err = json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
-		util.RespondBad(w, err)
-		return
-	}
-
-	// Validate the client cluster ID
-	if body.ClusterID == "" {
-		fmt.Printf("POST service failed %#v\n", err)
 		util.RespondBad(w, err)
 		return
 	}
