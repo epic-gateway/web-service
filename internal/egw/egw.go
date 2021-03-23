@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 
@@ -200,7 +201,7 @@ func (g *EGW) createServiceCluster(w http.ResponseWriter, r *http.Request) {
 		util.RespondNotFound(w, err)
 	}
 
-	selfURL := fmt.Sprintf("/api/egw/accounts/%s/services/%s/clusters/%s", vars["account"], vars["service"], body.ClusterID)
+	selfURL := fmt.Sprintf("/api/egw/accounts/%s/services/%s/clusters/%s", vars["account"], vars["service"], url.QueryEscape(body.ClusterID))
 
 	if err := service.Service.AddUpstream(body.ClusterID); err != nil {
 		fmt.Printf("Duplicate cluster %#v: %s\n", body.ClusterID, err)
@@ -222,7 +223,7 @@ func (g *EGW) createServiceCluster(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("POST cluster OK %s/%s/%s\n", vars["account"], vars["service"], body.ClusterID)
+	fmt.Printf("POST cluster OK %s/%s %s\n", vars["account"], vars["service"], body.ClusterID)
 	http.Redirect(w, r, selfURL, http.StatusFound)
 }
 
@@ -233,23 +234,31 @@ func (g *EGW) showCluster(w http.ResponseWriter, r *http.Request) {
 	)
 	vars := mux.Vars(r)
 
+	cluster, err := url.QueryUnescape(vars["cluster"])
+	if err != nil {
+		fmt.Printf("GET cluster failed %s/%s %s %#v\n", vars["account"], vars["service"], cluster, err)
+		util.RespondBad(w, err)
+		return
+	}
+
 	// 404 if we can't find the service
 	service, err = db.ReadService(r.Context(), g.client, vars["account"], vars["service"])
 	if err != nil {
-		fmt.Printf("GET cluster failed %s/%s/%s %#v\n", vars["account"], vars["service"], vars["cluster"], err)
+		fmt.Printf("GET cluster failed %s/%s %s %#v\n", vars["account"], vars["service"], cluster, err)
 		util.RespondNotFound(w, err)
+		return
 	}
 
 	// 404 if the service doesn't have a cluster with that name
-	if !service.Service.ContainsUpstream(vars["cluster"]) {
-		err = fmt.Errorf("cluster %s/%s/%s not found", vars["account"], vars["service"], vars["cluster"])
+	if !service.Service.ContainsUpstream(cluster) {
+		err = fmt.Errorf("cluster %s/%s %s not found", vars["account"], vars["service"], cluster)
 		fmt.Printf("GET cluster failed %#v\n", err)
 		util.RespondNotFound(w, err)
 		return
 	}
 
 	links := model.Links{"self": r.RequestURI, "service": fmt.Sprintf("/api/egw/accounts/%v/services/%v", vars["account"], vars["service"])}
-	fmt.Printf("GET cluster OK %s/%s/%s\n", vars["account"], vars["service"], vars["cluster"])
+	fmt.Printf("GET cluster OK %s/%s %s\n", vars["account"], vars["service"], cluster)
 	util.RespondJSON(w, http.StatusOK, model.Cluster{Links: links}, util.EmptyHeader)
 	return
 }
@@ -261,13 +270,19 @@ func (g *EGW) deleteCluster(w http.ResponseWriter, r *http.Request) {
 	)
 	vars := mux.Vars(r)
 
+	cluster, err := url.QueryUnescape(vars["cluster"])
+	if err != nil {
+		fmt.Printf("GET cluster failed %s/%s %s %#v\n", vars["account"], vars["service"], cluster, err)
+		util.RespondBad(w, err)
+	}
+
 	service, err = db.ReadService(r.Context(), g.client, vars["account"], vars["service"])
 	if err != nil {
-		fmt.Printf("GET cluster failed %s/%s/%s %#v\n", vars["account"], vars["service"], vars["cluster"], err)
+		fmt.Printf("GET cluster failed %s/%s %s %#v\n", vars["account"], vars["service"], cluster, err)
 		util.RespondNotFound(w, err)
 	}
 
-	if err := service.Service.RemoveUpstream(vars["cluster"]); err != nil {
+	if err := service.Service.RemoveUpstream(cluster); err != nil {
 		fmt.Printf("GET cluster failed %#v\n", err)
 		util.RespondNotFound(w, err)
 		return
@@ -281,7 +296,7 @@ func (g *EGW) deleteCluster(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("DELETE cluster OK %s/%s/%s\n", vars["account"], vars["service"], vars["cluster"])
+	fmt.Printf("DELETE cluster OK %s/%s %s\n", vars["account"], vars["service"], cluster)
 	util.RespondJSON(w, http.StatusOK, map[string]string{"message": "delete successful"}, map[string]string{})
 	return
 }

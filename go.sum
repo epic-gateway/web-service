@@ -519,6 +519,8 @@ gitlab.com/acnodal/egw-resource-model v0.5.4-pre6 h1:kRYq51QZwOJU/+I3vih7PHvz3eo
 gitlab.com/acnodal/egw-resource-model v0.5.4-pre6/go.mod h1:g5LVg7oi5jMiRimlln9x4eTJyVtznKg4Pvxna1Qkk/I=
 gitlab.com/acnodal/egw-resource-model v0.5.4-pre7 h1:vqNCriLFUyToWja0N43crAjDB2T6z5NHTzKOMfrVFMw=
 gitlab.com/acnodal/egw-resource-model v0.5.4-pre7/go.mod h1:g5LVg7oi5jMiRimlln9x4eTJyVtznKg4Pvxna1Qkk/I=
+gitlab.com/acnodal/egw-resource-model v0.5.4-pre9 h1:/ImyUZJyot17d4HbkF7xpS3LXbLBXn1M9Vu9bXzrXvo=
+gitlab.com/acnodal/egw-resource-model v0.5.4-pre9/go.mod h1:g5LVg7oi5jMiRimlln9x4eTJyVtznKg4Pvxna1Qkk/I=
 gitlab.com/acnodal/packet-forwarding-component/src/go v0.0.0-20201020212529-ed4982208c08 h1:ash0kj++W04QTMonOE40qpGVwJSp/x4STnJe8Fr8C0k=
 gitlab.com/acnodal/packet-forwarding-component/src/go v0.0.0-20201020212529-ed4982208c08/go.mod h1:SDPfSIpwi0eaR90u+CSnzctMM/JOjOJFA+QFnljtC7M=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=

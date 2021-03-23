@@ -62,7 +62,7 @@ func main() {
 
 	// set up web service
 	setupLog.Info("starting web service")
-	r := mux.NewRouter()
+	r := mux.NewRouter().UseEncodedPath()
 	egw.SetupRoutes(r, "/api/egw", mgr.GetClient())
 
 	http.Handle("/", r)
