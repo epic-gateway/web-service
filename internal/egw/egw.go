@@ -308,9 +308,13 @@ func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Tie the endpoint to the service. We use a label so we can query
-	// for the set of endpoints that belong to a given LB.
-	body.Endpoint.Labels = map[string]string{egwv1.OwningLoadBalancerLabel: service.Service.Name}
+	// Tie the endpoint to the service and cluster. We use a label so we
+	// can query for the set of endpoints that belong to a given
+	// LB/cluster.
+	body.Endpoint.Labels = map[string]string{
+		egwv1.OwningLoadBalancerLabel: service.Service.Name,
+		egwv1.OwningClusterLabel:      body.Endpoint.Spec.Cluster,
+	}
 
 	// Give the endpoint a name that's readable but also won't collide
 	// with others
