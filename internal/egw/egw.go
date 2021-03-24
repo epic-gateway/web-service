@@ -22,7 +22,7 @@ import (
 
 const (
 	// URLRoot is the common root of this service's URLs.
-	URLRoot = "/api/egw"
+	URLRoot = "/api/epic"
 )
 
 var (
