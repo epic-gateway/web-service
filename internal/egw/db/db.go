@@ -31,7 +31,7 @@ func ReadService(ctx context.Context, cl client.Client, namespace string, name s
 	for err = fmt.Errorf(""); err != nil && tries > 0; tries-- {
 		err = cl.Get(ctx, client.ObjectKey{Namespace: "egw-" + namespace, Name: name}, &mservice.Service)
 		if err != nil {
-			fmt.Printf("problem reading service %s/%s: %#v\n", namespace, name, err)
+			fmt.Printf("problem reading service %s/%s: %s\n", namespace, name, err)
 			if tries > 1 {
 				time.Sleep(1 * time.Second)
 			}

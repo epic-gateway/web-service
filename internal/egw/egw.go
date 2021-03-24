@@ -128,7 +128,7 @@ func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("POST service created %v %#v\n", vars["account"], body.Service.Spec)
+	fmt.Printf("POST service OK %v %#v\n", vars["account"], body.Service.Spec)
 	http.Redirect(w, r, selfURL, http.StatusFound)
 }
 
@@ -366,7 +366,7 @@ func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("POST endpoint created %#v\n", body.Endpoint.Spec)
+	fmt.Printf("POST endpoint OK %#v\n", body.Endpoint.Spec)
 	http.Redirect(w, r, fmt.Sprintf("/api/egw/accounts/%v/services/%v/endpoints/%v", vars["account"], vars["service"], body.Endpoint.Name), http.StatusFound)
 	return
 }
@@ -388,7 +388,7 @@ func (g *EGW) deleteEndpoint(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	err := db.DeleteEndpoint(r.Context(), g.client, vars["account"], vars["endpoint"])
 	if err == nil {
-		fmt.Printf("DELETE endpoint %s/%s\n", vars["account"], vars["endpoint"])
+		fmt.Printf("DELETE endpoint OK %s/%s\n", vars["account"], vars["endpoint"])
 		util.RespondJSON(w, http.StatusOK, map[string]string{"message": "endpoint deleted"}, util.EmptyHeader)
 		return
 	}
