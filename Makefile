@@ -1,5 +1,5 @@
-REPO ?= registry.gitlab.com/acnodal
-PREFIX ?= egw-web-service
+REPO ?= registry.gitlab.com/acnodal/epic
+PREFIX ?= web-service
 SUFFIX ?= ${USER}-dev
 
 TAG ?= ${REPO}/${PREFIX}:${SUFFIX}
@@ -37,8 +37,8 @@ install:	image ## Push the image to the registry
 	docker push ${TAG}
 
 .PHONY: manifest
-manifest: deploy/egw-web-service.yaml
+manifest: deploy/web-service.yaml
 
-deploy/egw-web-service.yaml: config/egw-web-service.yaml
-	sed "s registry.gitlab.com/acnodal/egw-web-service:unknown ${TAG} " < $^ > $@
-	cp deploy/egw-web-service.yaml deploy/egw-web-service-${SUFFIX}.yaml
+deploy/web-service.yaml: config/web-service.yaml
+	sed "s registry.gitlab.com/acnodal/epic/web-service:unknown ${TAG} " < $^ > $@
+	cp deploy/web-service.yaml deploy/web-service-${SUFFIX}.yaml

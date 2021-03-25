@@ -1,7 +1,7 @@
 package model
 
 import (
-	egwv1 "gitlab.com/acnodal/egw-resource-model/api/v1"
+	epicv1 "gitlab.com/acnodal/epic/resource-model/api/v1"
 )
 
 // Links is a map of URL links from this object to others. Keys are
@@ -11,43 +11,43 @@ type Links map[string]string
 
 // Account represents an account on the wire.
 type Account struct {
-	Links   Links         `json:"link"`
-	Account egwv1.Account `json:"account"`
+	Links   Links          `json:"link"`
+	Account epicv1.Account `json:"account"`
 }
 
 // NewAccount configures a new Account instance.
 func NewAccount() Account {
 	return Account{
 		Links:   Links{},
-		Account: egwv1.Account{},
+		Account: epicv1.Account{},
 	}
 }
 
 // Group represents a Service Group on the wire.
 type Group struct {
-	Links Links              `json:"link"`
-	Group egwv1.ServiceGroup `json:"group"`
+	Links Links               `json:"link"`
+	Group epicv1.ServiceGroup `json:"group"`
 }
 
 // NewGroup configures a new Group instance.
 func NewGroup() Group {
 	return Group{
 		Links: Links{},
-		Group: egwv1.ServiceGroup{},
+		Group: epicv1.ServiceGroup{},
 	}
 }
 
 // Service represents a load balancer service on the wire.
 type Service struct {
-	Links   Links              `json:"link"`
-	Service egwv1.LoadBalancer `json:"service"`
+	Links   Links               `json:"link"`
+	Service epicv1.LoadBalancer `json:"service"`
 }
 
 // NewService configures a new Service instance.
 func NewService() Service {
 	return Service{
 		Links:   Links{},
-		Service: egwv1.LoadBalancer{},
+		Service: epicv1.LoadBalancer{},
 	}
 }
 
@@ -65,14 +65,14 @@ func NewCluster() Cluster {
 
 // Endpoint represents a load balancer endpoint on the wire.
 type Endpoint struct {
-	Links    Links                `json:"link"`
-	Endpoint egwv1.RemoteEndpoint `json:"endpoint"`
+	Links    Links                 `json:"link"`
+	Endpoint epicv1.RemoteEndpoint `json:"endpoint"`
 }
 
 // NewEndpoint configures a new Endpoint instance.
 func NewEndpoint() Endpoint {
 	return Endpoint{
 		Links:    Links{},
-		Endpoint: egwv1.RemoteEndpoint{},
+		Endpoint: epicv1.RemoteEndpoint{},
 	}
 }

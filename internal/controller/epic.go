@@ -1,4 +1,4 @@
-package egw
+package controller
 
 import (
 	"crypto/rand"
@@ -11,13 +11,13 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-	egwv1 "gitlab.com/acnodal/egw-resource-model/api/v1"
+	epicv1 "gitlab.com/acnodal/epic/resource-model/api/v1"
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"acnodal.io/egw-ws/internal/egw/db"
-	"acnodal.io/egw-ws/internal/model"
-	"acnodal.io/egw-ws/internal/util"
+	"acnodal.io/epic/web-service/internal/db"
+	"acnodal.io/epic/web-service/internal/model"
+	"acnodal.io/epic/web-service/internal/util"
 )
 
 const (
@@ -27,13 +27,13 @@ const (
 
 var (
 	multiClusterLB = regexp.MustCompile(`has upstream clusters, can't delete`)
-	duplicateLB    = regexp.MustCompile(`^loadbalancers.egw.acnodal.io "(.*)" already exists$`)
+	duplicateLB    = regexp.MustCompile(`^loadbalancers.epic.acnodal.io "(.*)" already exists$`)
 	duplicateRep   = regexp.MustCompile(`^.*duplicate endpoint: (.*)$`)
 	rfc1123Cleaner = strings.NewReplacer(".", "-", ":", "-")
 )
 
-// EGW implements the server side of the EGW web service protocol.
-type EGW struct {
+// EPIC implements the server side of the EPIC web service protocol.
+type EPIC struct {
 	client client.Client
 	router *mux.Router
 }
@@ -41,7 +41,7 @@ type EGW struct {
 // ServiceCreateRequest contains the data from a web service request
 // to create a Service.
 type ServiceCreateRequest struct {
-	Service egwv1.LoadBalancer
+	Service epicv1.LoadBalancer
 }
 
 // ClusterCreateRequest contains the data from a web service request
@@ -53,7 +53,7 @@ type ClusterCreateRequest struct {
 // EndpointCreateRequest contains the data from a web service request
 // to create a Endpoint.
 type EndpointCreateRequest struct {
-	Endpoint egwv1.RemoteEndpoint
+	Endpoint epicv1.RemoteEndpoint
 }
 
 func toLower(protocol v1.Protocol) string {
@@ -61,9 +61,9 @@ func toLower(protocol v1.Protocol) string {
 }
 
 // createService handles PureLB service announcements. They're sent
-// from the EGW pool in the allocator, so we need to allocate and
-// return the LB address.
-func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
+// from the allocator pool, so we need to allocate and return the LB
+// address.
+func (g *EPIC) createService(w http.ResponseWriter, r *http.Request) {
 	var (
 		err  error
 		body ServiceCreateRequest
@@ -103,8 +103,8 @@ func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
 	if body.Service.Labels == nil {
 		body.Service.Labels = map[string]string{}
 	}
-	body.Service.Labels[egwv1.OwningServiceGroupLabel] = vars["group"]
-	body.Service.Labels[egwv1.OwningServicePrefixLabel] = group.Group.Labels[egwv1.OwningServicePrefixLabel]
+	body.Service.Labels[epicv1.OwningServiceGroupLabel] = vars["group"]
+	body.Service.Labels[epicv1.OwningServicePrefixLabel] = group.Group.Labels[epicv1.OwningServicePrefixLabel]
 
 	// This LB will live in the same NS as its owning group
 	body.Service.Namespace = group.Group.Namespace
@@ -143,11 +143,11 @@ func (g *EGW) createService(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, selfURL.String(), http.StatusFound)
 }
 
-func (g *EGW) showService(w http.ResponseWriter, r *http.Request) {
+func (g *EPIC) showService(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	service, err := db.ReadService(r.Context(), g.client, vars["account"], vars["service"])
 	if err == nil {
-		groupLink, err := g.router.Get("group").URL("account", vars["account"], "group", service.Service.Labels[egwv1.OwningServiceGroupLabel])
+		groupLink, err := g.router.Get("group").URL("account", vars["account"], "group", service.Service.Labels[epicv1.OwningServiceGroupLabel])
 		if err != nil {
 			fmt.Printf("GET service failed %s/%s: %s\n", vars["account"], vars["group"], err)
 			util.RespondError(w, err)
@@ -167,7 +167,7 @@ func (g *EGW) showService(w http.ResponseWriter, r *http.Request) {
 	util.RespondNotFound(w, err)
 }
 
-func (g *EGW) deleteService(w http.ResponseWriter, r *http.Request) {
+func (g *EPIC) deleteService(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	// Delete the CR
@@ -189,7 +189,7 @@ func (g *EGW) deleteService(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (g *EGW) createServiceCluster(w http.ResponseWriter, r *http.Request) {
+func (g *EPIC) createServiceCluster(w http.ResponseWriter, r *http.Request) {
 	var (
 		err     error
 		service *model.Service
@@ -249,7 +249,7 @@ func (g *EGW) createServiceCluster(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, selfURL.String(), http.StatusFound)
 }
 
-func (g *EGW) showCluster(w http.ResponseWriter, r *http.Request) {
+func (g *EPIC) showCluster(w http.ResponseWriter, r *http.Request) {
 	var (
 		err     error
 		service *model.Service
@@ -292,7 +292,7 @@ func (g *EGW) showCluster(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (g *EGW) deleteCluster(w http.ResponseWriter, r *http.Request) {
+func (g *EPIC) deleteCluster(w http.ResponseWriter, r *http.Request) {
 	var (
 		err     error
 		service *model.Service
@@ -330,7 +330,7 @@ func (g *EGW) deleteCluster(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
+func (g *EPIC) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	var (
 		body    EndpointCreateRequest
@@ -356,8 +356,8 @@ func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 	// can query for the set of endpoints that belong to a given
 	// LB/cluster.
 	body.Endpoint.Labels = map[string]string{
-		egwv1.OwningLoadBalancerLabel: service.Service.Name,
-		egwv1.OwningClusterLabel:      body.Endpoint.Spec.Cluster,
+		epicv1.OwningLoadBalancerLabel: service.Service.Name,
+		epicv1.OwningClusterLabel:      body.Endpoint.Spec.Cluster,
 	}
 
 	// Give the endpoint a name that's readable but also won't collide
@@ -407,7 +407,7 @@ func (g *EGW) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func (g *EGW) showEndpoint(w http.ResponseWriter, r *http.Request) {
+func (g *EPIC) showEndpoint(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	ep, err := db.ReadEndpoint(r.Context(), g.client, vars["account"], vars["endpoint"])
 	if err == nil {
@@ -427,7 +427,7 @@ func (g *EGW) showEndpoint(w http.ResponseWriter, r *http.Request) {
 	util.RespondNotFound(w, err)
 }
 
-func (g *EGW) deleteEndpoint(w http.ResponseWriter, r *http.Request) {
+func (g *EPIC) deleteEndpoint(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	err := db.DeleteEndpoint(r.Context(), g.client, vars["account"], vars["endpoint"])
 	if err == nil {
@@ -439,7 +439,7 @@ func (g *EGW) deleteEndpoint(w http.ResponseWriter, r *http.Request) {
 	util.RespondError(w, err)
 }
 
-func (g *EGW) showGroup(w http.ResponseWriter, r *http.Request) {
+func (g *EPIC) showGroup(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	group, err := db.ReadGroup(r.Context(), g.client, vars["account"], vars["group"])
 	if err == nil {
@@ -462,7 +462,7 @@ func (g *EGW) showGroup(w http.ResponseWriter, r *http.Request) {
 	util.RespondNotFound(w, err)
 }
 
-func (g *EGW) showAccount(w http.ResponseWriter, r *http.Request) {
+func (g *EPIC) showAccount(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	account, err := db.ReadAccount(r.Context(), g.client, vars["account"])
 	if err == nil {
@@ -473,24 +473,24 @@ func (g *EGW) showAccount(w http.ResponseWriter, r *http.Request) {
 	util.RespondNotFound(w, err)
 }
 
-// NewEGW configures a new EGW web service instance.
-func NewEGW(client client.Client, router *mux.Router) *EGW {
-	return &EGW{client: client, router: router}
+// NewEPIC configures a new EPIC web service instance.
+func NewEPIC(client client.Client, router *mux.Router) *EPIC {
+	return &EPIC{client: client, router: router}
 }
 
-// SetupRoutes sets up the provided mux.Router to handle the EGW web
+// SetupRoutes sets up the provided mux.Router to handle the web
 // service routes.
 func SetupRoutes(router *mux.Router, client client.Client) {
-	egw := NewEGW(client, router)
-	router.HandleFunc("/accounts/{account}/services/{service}/endpoints/{endpoint}", egw.showEndpoint).Methods(http.MethodGet).Name("endpoint")
-	router.HandleFunc("/accounts/{account}/services/{service}/endpoints/{endpoint}", egw.deleteEndpoint).Methods(http.MethodDelete)
-	router.HandleFunc("/accounts/{account}/services/{service}/endpoints", egw.createServiceEndpoint).Methods(http.MethodPost)
-	router.HandleFunc("/accounts/{account}/services/{service}/clusters/{cluster}", egw.showCluster).Methods(http.MethodGet).Name("cluster")
-	router.HandleFunc("/accounts/{account}/services/{service}/clusters/{cluster}", egw.deleteCluster).Methods(http.MethodDelete)
-	router.HandleFunc("/accounts/{account}/services/{service}/clusters", egw.createServiceCluster).Methods(http.MethodPost)
-	router.HandleFunc("/accounts/{account}/services/{service}", egw.deleteService).Methods(http.MethodDelete)
-	router.HandleFunc("/accounts/{account}/services/{service}", egw.showService).Methods(http.MethodGet).Name("service")
-	router.HandleFunc("/accounts/{account}/groups/{group}/services", egw.createService).Methods(http.MethodPost).Name("group-services")
-	router.HandleFunc("/accounts/{account}/groups/{group}", egw.showGroup).Methods(http.MethodGet).Name("group")
-	router.HandleFunc("/accounts/{account}", egw.showAccount).Methods(http.MethodGet).Name("account")
+	epic := NewEPIC(client, router)
+	router.HandleFunc("/accounts/{account}/services/{service}/endpoints/{endpoint}", epic.showEndpoint).Methods(http.MethodGet).Name("endpoint")
+	router.HandleFunc("/accounts/{account}/services/{service}/endpoints/{endpoint}", epic.deleteEndpoint).Methods(http.MethodDelete)
+	router.HandleFunc("/accounts/{account}/services/{service}/endpoints", epic.createServiceEndpoint).Methods(http.MethodPost)
+	router.HandleFunc("/accounts/{account}/services/{service}/clusters/{cluster}", epic.showCluster).Methods(http.MethodGet).Name("cluster")
+	router.HandleFunc("/accounts/{account}/services/{service}/clusters/{cluster}", epic.deleteCluster).Methods(http.MethodDelete)
+	router.HandleFunc("/accounts/{account}/services/{service}/clusters", epic.createServiceCluster).Methods(http.MethodPost)
+	router.HandleFunc("/accounts/{account}/services/{service}", epic.deleteService).Methods(http.MethodDelete)
+	router.HandleFunc("/accounts/{account}/services/{service}", epic.showService).Methods(http.MethodGet).Name("service")
+	router.HandleFunc("/accounts/{account}/groups/{group}/services", epic.createService).Methods(http.MethodPost).Name("group-services")
+	router.HandleFunc("/accounts/{account}/groups/{group}", epic.showGroup).Methods(http.MethodGet).Name("group")
+	router.HandleFunc("/accounts/{account}", epic.showAccount).Methods(http.MethodGet).Name("account")
 }

@@ -13,12 +13,12 @@ WORKDIR /opt/acnodal/src
 COPY . ./
 
 # build the web service (static)
-RUN go build  -tags 'osusergo netgo' -o ../bin/egw-ws main.go
+RUN go build  -tags 'osusergo netgo' -o ../bin/web-service main.go
 
 
 # start fresh
 FROM golang:alpine
-ENV bin=/opt/acnodal/bin/egw-ws
+ENV bin=/opt/acnodal/bin/web-service
 
 # copy executables from the builder image
 COPY --from=builder ${bin} ${bin}

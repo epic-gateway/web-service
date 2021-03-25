@@ -15,9 +15,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"acnodal.io/egw-ws/internal/egw"
+	"acnodal.io/epic/web-service/internal/controller"
 
-	egwv1 "gitlab.com/acnodal/egw-resource-model/api/v1"
+	epicv1 "gitlab.com/acnodal/epic/resource-model/api/v1"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -31,7 +31,7 @@ func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(egwv1.AddToScheme(scheme))
+	utilruntime.Must(epicv1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -63,7 +63,7 @@ func main() {
 	// set up web service
 	setupLog.Info("starting web service")
 	r := mux.NewRouter().UseEncodedPath()
-	egw.SetupRoutes(r.PathPrefix(egw.URLRoot).Subrouter(), mgr.GetClient())
+	controller.SetupRoutes(r.PathPrefix(controller.URLRoot).Subrouter(), mgr.GetClient())
 
 	http.Handle("/", r)
 	go http.ListenAndServe(":8080", nil)

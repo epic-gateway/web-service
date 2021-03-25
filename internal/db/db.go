@@ -5,22 +5,23 @@ import (
 	"fmt"
 	"time"
 
+	epicv1 "gitlab.com/acnodal/epic/resource-model/api/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"acnodal.io/egw-ws/internal/model"
+	"acnodal.io/epic/web-service/internal/model"
 )
 
 // ReadAccount reads one account from the cluster.
 func ReadAccount(ctx context.Context, cl client.Client, accountName string) (*model.Account, error) {
 	maccount := model.NewAccount()
-	return &maccount, cl.Get(ctx, client.ObjectKey{Namespace: "egw-" + accountName, Name: accountName}, &maccount.Account)
+	return &maccount, cl.Get(ctx, client.ObjectKey{Namespace: epicv1.AccountNamespace(accountName), Name: accountName}, &maccount.Account)
 }
 
 // ReadGroup reads one service group from the cluster.
 func ReadGroup(ctx context.Context, cl client.Client, accountName string, name string) (*model.Group, error) {
 	mgroup := model.NewGroup()
-	return &mgroup, cl.Get(ctx, client.ObjectKey{Namespace: "egw-" + accountName, Name: name}, &mgroup.Group)
+	return &mgroup, cl.Get(ctx, client.ObjectKey{Namespace: epicv1.AccountNamespace(accountName), Name: name}, &mgroup.Group)
 }
 
 // ReadService reads one load balancer service from the cluster.
@@ -29,7 +30,7 @@ func ReadService(ctx context.Context, cl client.Client, namespace string, name s
 	mservice := model.NewService()
 	tries := 2
 	for err = fmt.Errorf(""); err != nil && tries > 0; tries-- {
-		err = cl.Get(ctx, client.ObjectKey{Namespace: "egw-" + namespace, Name: name}, &mservice.Service)
+		err = cl.Get(ctx, client.ObjectKey{Namespace: epicv1.AccountNamespace(namespace), Name: name}, &mservice.Service)
 		if err != nil {
 			fmt.Printf("problem reading service %s/%s: %s\n", namespace, name, err)
 			if tries > 1 {
@@ -46,7 +47,7 @@ func ReadEndpoint(ctx context.Context, cl client.Client, namespace string, name 
 	mendpoint := model.NewEndpoint()
 	tries := 2
 	for err = fmt.Errorf(""); err != nil && tries > 0; tries-- {
-		err = cl.Get(ctx, client.ObjectKey{Namespace: "egw-" + namespace, Name: name}, &mendpoint.Endpoint)
+		err = cl.Get(ctx, client.ObjectKey{Namespace: epicv1.AccountNamespace(namespace), Name: name}, &mendpoint.Endpoint)
 		if err != nil {
 			fmt.Printf("problem reading endpoint %s/%s: %#v\n", namespace, name, err)
 			if tries > 1 {

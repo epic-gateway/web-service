@@ -3,19 +3,19 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   labels:
-    app: egw
-  name: egw-web-service
-  namespace: egw
+    app: epic
+  name: web-service
+  namespace: epic
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
-    app: egw
-  name: egw-web-service
+    app: epic
+  name: web-service
 rules:
 - apiGroups:
-  - egw.acnodal.io
+  - epic.acnodal.io
   resources:
   - accounts
   - servicegroups
@@ -27,7 +27,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - egw.acnodal.io
+  - epic.acnodal.io
   resources:
   - loadbalancers
   - remoteendpoints
@@ -41,39 +41,39 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   labels:
-    app: egw
-  name: egw-web-service
+    app: epic
+  name: web-service
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: egw-web-service
+  name: web-service
 subjects:
 - kind: ServiceAccount
-  name: egw-web-service
-  namespace: egw
+  name: web-service
+  namespace: epic
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: egw
+    app: epic
     component: web-service
   name: web-service
-  namespace: egw
+  namespace: epic
 spec:
   selector:
     matchLabels:
-      app: egw
+      app: epic
       component: web-service
   template:
     metadata:
       labels:
-        app: egw
+        app: epic
         component: web-service
     spec:
       containers:
       - name: web-service
-        image: registry.gitlab.com/acnodal/egw-web-service:unknown
+        image: registry.gitlab.com/acnodal/epic/web-service:unknown
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
@@ -82,14 +82,14 @@ spec:
           readOnlyRootFilesystem: true
       imagePullSecrets:
       - name: gitlab
-      serviceAccountName: egw-web-service
+      serviceAccountName: web-service
       terminationGracePeriodSeconds: 0
 ---
 kind: Service
 apiVersion: v1
 metadata:
   name: web-service
-  namespace: egw
+  namespace: epic
 spec:
   type: NodePort
   ports:
@@ -97,5 +97,5 @@ spec:
     nodePort: 30080
     name: ws
   selector:
-    app: egw
+    app: epic
     component: web-service
