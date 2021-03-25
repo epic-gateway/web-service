@@ -17,7 +17,7 @@ docker:
   - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
 
   script:
-  - make SUFFIX=${TAG_SPECIFIC} GITLAB_AUTHN=gitlab-ci-token:${CI_JOB_TOKEN} manifest install
+  - make SUFFIX=${TAG_SPECIFIC} GITLAB_USER=gitlab-ci-token GITLAB_PASSWORD=${CI_JOB_TOKEN} manifest install
 
   artifacts:
     paths:

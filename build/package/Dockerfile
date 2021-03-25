@@ -1,12 +1,13 @@
 FROM golang:alpine as builder
 
 ENV GOOS=linux
-ARG GITLAB_AUTHN
+ARG GITLAB_USER
+ARG GITLAB_PASSWORD
 
 # install and configure git. we need it because some of our modules
-# (e.g., egw-resource-model) are private
+# (e.g., epic/resource-model) are private
 RUN apk add git
-RUN git config --global url."https://${GITLAB_AUTHN}@gitlab.com/acnodal".insteadOf https://gitlab.com/acnodal
+RUN echo "machine gitlab.com login ${GITLAB_USER} password ${GITLAB_PASSWORD}" > ~/.netrc
 
 WORKDIR /opt/acnodal/src
 COPY . ./
