@@ -25,15 +25,15 @@ func NewAccount() Account {
 
 // Group represents a Service Group on the wire.
 type Group struct {
-	Links Links               `json:"link"`
-	Group epicv1.ServiceGroup `json:"group"`
+	Links Links                 `json:"link"`
+	Group epicv1.LBServiceGroup `json:"group"`
 }
 
 // NewGroup configures a new Group instance.
 func NewGroup() Group {
 	return Group{
 		Links: Links{},
-		Group: epicv1.ServiceGroup{},
+		Group: epicv1.LBServiceGroup{},
 	}
 }
 

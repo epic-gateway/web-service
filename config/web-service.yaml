@@ -18,7 +18,7 @@ rules:
   - epic.acnodal.io
   resources:
   - accounts
-  - servicegroups
+  - lbservicegroups
   - serviceprefixes
   - loadbalancers
   - remoteendpoints

@@ -103,7 +103,7 @@ func (g *EPIC) createService(w http.ResponseWriter, r *http.Request) {
 	if body.Service.Labels == nil {
 		body.Service.Labels = map[string]string{}
 	}
-	body.Service.Labels[epicv1.OwningServiceGroupLabel] = vars["group"]
+	body.Service.Labels[epicv1.OwningLBServiceGroupLabel] = vars["group"]
 	body.Service.Labels[epicv1.OwningServicePrefixLabel] = group.Group.Labels[epicv1.OwningServicePrefixLabel]
 
 	// This LB will live in the same NS as its owning group
@@ -147,7 +147,7 @@ func (g *EPIC) showService(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	service, err := db.ReadService(r.Context(), g.client, vars["account"], vars["service"])
 	if err == nil {
-		groupLink, err := g.router.Get("group").URL("account", vars["account"], "group", service.Service.Labels[epicv1.OwningServiceGroupLabel])
+		groupLink, err := g.router.Get("group").URL("account", vars["account"], "group", service.Service.Labels[epicv1.OwningLBServiceGroupLabel])
 		if err != nil {
 			fmt.Printf("GET service failed %s/%s: %s\n", vars["account"], vars["group"], err)
 			util.RespondError(w, err)
