@@ -7,6 +7,7 @@ import (
 
 	epicv1 "gitlab.com/acnodal/epic/resource-model/api/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"acnodal.io/epic/web-service/internal/model"
@@ -70,7 +71,12 @@ func DeleteService(ctx context.Context, cl client.Client, namespace string, name
 		}
 		return err
 	}
-	return cl.Delete(ctx, &service.Service)
+
+	// Delete with DeletePropagationForeground policy so endpoints are
+	// deleted before the LB. We do this because we need some info from
+	// the LB to clean up after the endpoint.
+	foreground := v1.DeletePropagationForeground
+	return cl.Delete(ctx, &service.Service, &client.DeleteOptions{PropagationPolicy: &foreground})
 }
 
 // DeleteEndpoint deletes the specified load balancer.
