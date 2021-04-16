@@ -86,6 +86,15 @@ func (g *EPIC) createService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// The group name is a sorta-kinda "namespace" because two services
+	// with the same name in the same group will be shared but two
+	// services with the same name in different groups will be
+	// independent. Since the loadbalancer CRs for both services live in
+	// the same k8s namespace, to make this work we prepend the group
+	// name to the service name. This way two services with the same
+	// name won't collide if they belong to different groups.
+	body.Service.Name = vars["group"] + "-" + body.Service.Name
+
 	// If this LB can not be shared then give it a random readable name
 	// so it doesn't collide with other LBs in the group that might be
 	// created by other services with the same name. If the LB can be
