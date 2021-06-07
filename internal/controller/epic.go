@@ -1,18 +1,15 @@
 package controller
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"regexp"
-	"strings"
 
 	"github.com/gorilla/mux"
 	epicv1 "gitlab.com/acnodal/epic/resource-model/api/v1"
-	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"acnodal.io/epic/web-service/internal/db"
@@ -29,7 +26,6 @@ var (
 	multiClusterLB = regexp.MustCompile(`has upstream clusters, can't delete`)
 	duplicateLB    = regexp.MustCompile(`^loadbalancers.epic.acnodal.io "(.*)" already exists$`)
 	duplicateRep   = regexp.MustCompile(`^.*duplicate endpoint: (.*)$`)
-	rfc1123Cleaner = strings.NewReplacer(".", "-", ":", "-")
 )
 
 // EPIC implements the server side of the EPIC web service protocol.
@@ -54,10 +50,6 @@ type ClusterCreateRequest struct {
 // to create a Endpoint.
 type EndpointCreateRequest struct {
 	Endpoint epicv1.RemoteEndpoint
-}
-
-func toLower(protocol v1.Protocol) string {
-	return strings.ToLower(string(protocol))
 }
 
 // createService handles PureLB service announcements. They're sent
@@ -86,27 +78,7 @@ func (g *EPIC) createService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// The group name is a sorta-kinda "namespace" because two services
-	// with the same name in the same group will be shared but two
-	// services with the same name in different groups will be
-	// independent. Since the loadbalancer CRs for both services live in
-	// the same k8s namespace, to make this work we prepend the group
-	// name to the service name. This way two services with the same
-	// name won't collide if they belong to different groups.
-	body.Service.Name = vars["group"] + "-" + body.Service.Name
-
-	// If this LB can not be shared then give it a random readable name
-	// so it doesn't collide with other LBs in the group that might be
-	// created by other services with the same name. If the LB can be
-	// shared then leave its name alone so other PureLB services with
-	// the same name can find it. When they try to create their services
-	// they'll get a 409 Conflict response that points them at this
-	// service.
-	if !group.Group.Spec.CanBeShared {
-		raw := make([]byte, 8, 8)
-		_, _ = rand.Read(raw)
-		body.Service.Name += "-" + hex.EncodeToString(raw)
-	}
+	body.Service.Name = epicv1.LoadBalancerName(vars["group"], body.Service.Name, group.Group.Spec.CanBeShared)
 
 	// Set links to the owning service group and prefix
 	if body.Service.Labels == nil {
@@ -372,9 +344,12 @@ func (g *EPIC) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 	// Give the endpoint a name that's readable but also won't collide
 	// with others
 	if body.Endpoint.Name == "" {
-		raw := make([]byte, 8, 8)
-		_, _ = rand.Read(raw)
-		body.Endpoint.Name = fmt.Sprintf("%s-%d-%s-%s", rfc1123Cleaner.Replace(body.Endpoint.Spec.Address), body.Endpoint.Spec.Port.Port, toLower(body.Endpoint.Spec.Port.Protocol), hex.EncodeToString(raw))
+		addr := net.ParseIP(body.Endpoint.Spec.Address)
+		if addr == nil {
+			util.RespondBad(w, fmt.Errorf("%s can't be parsed as a valid IP address", body.Endpoint.Spec.Address))
+			return
+		}
+		body.Endpoint.Name = epicv1.RemoteEndpointName(addr, body.Endpoint.Spec.Port.Port, body.Endpoint.Spec.Port.Protocol)
 	}
 
 	// This endpoint will live in the same NS as its owning LB
