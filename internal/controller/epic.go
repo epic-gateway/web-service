@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"time"
 
 	"github.com/gorilla/mux"
 	epicv1 "gitlab.com/acnodal/epic/resource-model/api/v1"
@@ -193,12 +194,7 @@ func (g *EPIC) createServiceCluster(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	service, err = db.ReadService(r.Context(), g.client, vars["account"], vars["service"])
-	if err != nil {
-		fmt.Printf("POST cluster failed %s/%s/%s %#v\n", vars["account"], vars["service"], body.ClusterID, err)
-		util.RespondNotFound(w, err)
-	}
-
+	// Calculate our "self" URL
 	selfURL, err := g.router.Get("cluster").URL("account", vars["account"], "service", vars["service"], "cluster", url.QueryEscape(body.ClusterID))
 	if err != nil {
 		fmt.Printf("GET cluster failed %s/%s/%s: %s\n", vars["account"], vars["service"], body.ClusterID, err)
@@ -206,19 +202,41 @@ func (g *EPIC) createServiceCluster(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := service.Service.AddUpstream(body.ClusterID); err != nil {
-		fmt.Printf("Duplicate cluster %#v: %s\n", body.ClusterID, err)
+	tries := 3
+	for err = fmt.Errorf(""); err != nil && tries > 0; tries-- {
+		service, err = db.ReadService(r.Context(), g.client, vars["account"], vars["service"])
+		if err != nil {
+			fmt.Printf("POST cluster failed %s/%s/%s %#v\n", vars["account"], vars["service"], body.ClusterID, err)
+			util.RespondNotFound(w, err)
+		}
 
-		// The LB already had that cluster
-		util.RespondConflict(
-			w,
-			map[string]interface{}{"message": err.Error(), "link": model.Links{"self": selfURL.String()}},
-			map[string]string{"Location": selfURL.String()},
-		)
-		return
+		// Add the new upstream to the object, and error if it's already
+		// there
+		if err := service.Service.AddUpstream(body.ClusterID); err != nil {
+			fmt.Printf("Duplicate cluster %#v: %s\n", body.ClusterID, err)
+
+			// The LB already had that cluster
+			util.RespondConflict(
+				w,
+				map[string]interface{}{"message": err.Error(), "link": model.Links{"self": selfURL.String()}},
+				map[string]string{"Location": selfURL.String()},
+			)
+			return
+		}
+
+		// Apply the update
+		err = g.client.Update(r.Context(), &service.Service)
+
+		// Pause a tick if the update failed to let whatever is clashing
+		// with us finish their work
+		if err != nil {
+			fmt.Printf("lb %s update conflict: %+v\n", vars["service"], err)
+			time.Sleep(100 * time.Millisecond)
+		} else {
+			fmt.Printf("lb %s update success\n", vars["service"])
+		}
 	}
 
-	err = g.client.Update(r.Context(), &service.Service)
 	if err != nil {
 		// Something went wrong
 		fmt.Printf("POST cluster failed %#v\n", err)
