@@ -671,6 +671,8 @@ gitlab.com/acnodal/epic/resource-model v0.8.11 h1:iLXRH7xUC7Hb5jeX+wTaOmp7qj6NCV
 gitlab.com/acnodal/epic/resource-model v0.8.11/go.mod h1:CYDpquMutntuygpuj62QNyNUgtxUFmQezvv1jKmR3b8=
 gitlab.com/acnodal/epic/resource-model v0.8.12 h1:oAjGti7FRPMXok370C7I0veAbF+Mkn8cS/SAR57/I7U=
 gitlab.com/acnodal/epic/resource-model v0.8.12/go.mod h1:CYDpquMutntuygpuj62QNyNUgtxUFmQezvv1jKmR3b8=
+gitlab.com/acnodal/epic/resource-model v0.9.2 h1:81Ryidt9UX4Drd57yet2XWr1idCWcaVsXKZQpp8Yn6k=
+gitlab.com/acnodal/epic/resource-model v0.9.2/go.mod h1:CYDpquMutntuygpuj62QNyNUgtxUFmQezvv1jKmR3b8=
 gitlab.com/acnodal/packet-forwarding-component/src/go v0.0.0-20201020212529-ed4982208c08 h1:ash0kj++W04QTMonOE40qpGVwJSp/x4STnJe8Fr8C0k=
 gitlab.com/acnodal/packet-forwarding-component/src/go v0.0.0-20201020212529-ed4982208c08/go.mod h1:SDPfSIpwi0eaR90u+CSnzctMM/JOjOJFA+QFnljtC7M=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
