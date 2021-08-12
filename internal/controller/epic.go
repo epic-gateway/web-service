@@ -475,9 +475,9 @@ func NewEPIC(client client.Client, router *mux.Router) *EPIC {
 	return &EPIC{client: client, router: router}
 }
 
-// SetupRoutes sets up the provided mux.Router to handle the web
+// SetupEPICRoutes sets up the provided mux.Router to handle the web
 // service routes.
-func SetupRoutes(router *mux.Router, client client.Client) {
+func SetupEPICRoutes(router *mux.Router, client client.Client) {
 	epic := NewEPIC(client, router)
 	router.HandleFunc("/accounts/{account}/services/{service}/endpoints/{endpoint}", epic.showEndpoint).Methods(http.MethodGet).Name("endpoint")
 	router.HandleFunc("/accounts/{account}/services/{service}/endpoints/{endpoint}", epic.deleteEndpoint).Methods(http.MethodDelete)

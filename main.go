@@ -68,7 +68,8 @@ func main() {
 	// set up web service
 	setupLog.Info("starting web service")
 	r := mux.NewRouter().UseEncodedPath()
-	controller.SetupRoutes(r.PathPrefix(URLRoot).Subrouter(), mgr.GetClient())
+	controller.SetupEPICRoutes(r.PathPrefix(URLRoot).Subrouter(), mgr.GetClient())
+	controller.SetupHealthzRoutes(r.PathPrefix(URLRoot).Subrouter())
 
 	http.Handle("/", r)
 	go http.ListenAndServe(":8080", nil)
