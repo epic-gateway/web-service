@@ -21,6 +21,11 @@ import (
 	// +kubebuilder:scaffold:imports
 )
 
+const (
+	// URLRoot is the common root of this service's URLs.
+	URLRoot = "/api/epic"
+)
+
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
@@ -63,7 +68,7 @@ func main() {
 	// set up web service
 	setupLog.Info("starting web service")
 	r := mux.NewRouter().UseEncodedPath()
-	controller.SetupRoutes(r.PathPrefix(controller.URLRoot).Subrouter(), mgr.GetClient())
+	controller.SetupRoutes(r.PathPrefix(URLRoot).Subrouter(), mgr.GetClient())
 
 	http.Handle("/", r)
 	go http.ListenAndServe(":8080", nil)

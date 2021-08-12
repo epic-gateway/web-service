@@ -18,11 +18,6 @@ import (
 	"acnodal.io/epic/web-service/internal/util"
 )
 
-const (
-	// URLRoot is the common root of this service's URLs.
-	URLRoot = "/api/epic"
-)
-
 var (
 	multiClusterLB = regexp.MustCompile(`has upstream clusters, can't delete`)
 	duplicateLB    = regexp.MustCompile(`^loadbalancers.epic.acnodal.io "(.*)" already exists$`)
