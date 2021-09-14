@@ -346,12 +346,10 @@ func (g *EPIC) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Tie the endpoint to the service and cluster. We use a label so we
-	// can query for the set of endpoints that belong to a given
-	// LB/cluster.
+	// Tie the endpoint to the service. We use a label so we can query
+	// for the set of endpoints that belong to a given LB.
 	body.Endpoint.Labels = map[string]string{
 		epicv1.OwningLoadBalancerLabel: service.Service.Name,
-		epicv1.OwningClusterLabel:      body.Endpoint.Spec.Cluster,
 	}
 
 	// Give the endpoint a name that's readable but also won't collide
