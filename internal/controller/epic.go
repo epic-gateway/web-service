@@ -371,11 +371,11 @@ func (g *EPIC) createServiceEndpoint(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		matches := duplicateRep.FindStringSubmatch(err.Error())
 		if len(matches) > 0 {
-			fmt.Printf("Duplicate endpoint %#v: %s\n", body.Endpoint.Spec, err)
 
 			// We already had that endpoint, but we can return what we hope
 			// the client needs to set up the tunnels on its end
 			otherURL := fmt.Sprintf("%s/%s", r.RequestURI, matches[1])
+			fmt.Printf("POST endpoint 409/duplicate %s\n", body.Endpoint.Name)
 			util.RespondConflict(
 				w,
 				map[string]interface{}{"message": err.Error(), "link": model.Links{"self": otherURL}, "endpoint": body.Endpoint},
