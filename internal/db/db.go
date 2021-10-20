@@ -26,14 +26,14 @@ func ReadGroup(ctx context.Context, cl client.Client, accountName string, name s
 }
 
 // ReadService reads one load balancer service from the cluster.
-func ReadService(ctx context.Context, cl client.Client, namespace string, name string) (*model.Service, error) {
+func ReadService(ctx context.Context, cl client.Client, accountName string, name string) (*model.Service, error) {
 	var err error
 	mservice := model.NewService()
 	tries := 2
 	for err = fmt.Errorf(""); err != nil && tries > 0; tries-- {
-		err = cl.Get(ctx, client.ObjectKey{Namespace: epicv1.AccountNamespace(namespace), Name: name}, &mservice.Service)
+		err = cl.Get(ctx, client.ObjectKey{Namespace: epicv1.AccountNamespace(accountName), Name: name}, &mservice.Service)
 		if err != nil {
-			fmt.Printf("problem reading service %s/%s: %s\n", namespace, name, err)
+			fmt.Printf("problem reading service %s/%s: %s\n", accountName, name, err)
 			if tries > 1 {
 				time.Sleep(1 * time.Second)
 			}
@@ -43,14 +43,14 @@ func ReadService(ctx context.Context, cl client.Client, namespace string, name s
 }
 
 // ReadEndpoint reads one service endpoint from the cluster.
-func ReadEndpoint(ctx context.Context, cl client.Client, namespace string, name string) (*model.Endpoint, error) {
+func ReadEndpoint(ctx context.Context, cl client.Client, accountName string, name string) (*model.Endpoint, error) {
 	var err error
 	mendpoint := model.NewEndpoint()
 	tries := 2
 	for err = fmt.Errorf(""); err != nil && tries > 0; tries-- {
-		err = cl.Get(ctx, client.ObjectKey{Namespace: epicv1.AccountNamespace(namespace), Name: name}, &mendpoint.Endpoint)
+		err = cl.Get(ctx, client.ObjectKey{Namespace: epicv1.AccountNamespace(accountName), Name: name}, &mendpoint.Endpoint)
 		if err != nil {
-			fmt.Printf("problem reading endpoint %s/%s: %#v\n", namespace, name, err)
+			fmt.Printf("problem reading endpoint %s/%s: %#v\n", accountName, name, err)
 			if tries > 1 {
 				time.Sleep(1 * time.Second)
 			}
@@ -60,13 +60,13 @@ func ReadEndpoint(ctx context.Context, cl client.Client, namespace string, name 
 }
 
 // DeleteService deletes the specified load balancer.
-func DeleteService(ctx context.Context, cl client.Client, namespace string, name string) error {
-	service, err := ReadService(ctx, cl, namespace, name)
+func DeleteService(ctx context.Context, cl client.Client, accountName string, name string) error {
+	service, err := ReadService(ctx, cl, accountName, name)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found. Not great, but the client wanted
 			// the object gone and it's gone.
-			fmt.Printf("%s/%s not found. Ignoring since object must be deleted\n", namespace, name)
+			fmt.Printf("%s/%s not found. Ignoring since object must be deleted\n", accountName, name)
 			return nil
 		}
 		return err
@@ -80,13 +80,13 @@ func DeleteService(ctx context.Context, cl client.Client, namespace string, name
 }
 
 // DeleteEndpoint deletes the specified load balancer.
-func DeleteEndpoint(ctx context.Context, cl client.Client, namespace string, name string) error {
-	endpoint, err := ReadEndpoint(ctx, cl, namespace, name)
+func DeleteEndpoint(ctx context.Context, cl client.Client, accountName string, repName string) error {
+	endpoint, err := ReadEndpoint(ctx, cl, accountName, repName)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found. Not great, but the client wanted
 			// the object gone and it's gone.
-			fmt.Printf("%s/%s not found. Ignoring since object must be deleted\n", namespace, name)
+			fmt.Printf("%s/%s not found. Ignoring since object must be deleted\n", accountName, repName)
 			return nil
 		}
 		return err
