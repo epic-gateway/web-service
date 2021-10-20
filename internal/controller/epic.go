@@ -98,7 +98,7 @@ func (g *EPIC) createService(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		matches := duplicateLB.FindStringSubmatch(err.Error())
 		if len(matches) > 0 {
-			fmt.Printf("Duplicate service %#v: %s\n", body.Service, err)
+			fmt.Printf("POST service 409/duplicate %s/%s\n", vars["account"], body.Service.Name)
 
 			// We already had that endpoint, but we can return what we hope
 			// the client needs to set up the tunnels on its end
