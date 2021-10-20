@@ -36,6 +36,12 @@ rules:
   - update
   - delete
   - patch
+- apiGroups:
+  - epic.acnodal.io
+  resources:
+  - remoteendpoints
+  verbs:
+   - deletecollection
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

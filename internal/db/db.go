@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"k8s.io/client-go/util/retry"
 
 	"acnodal.io/epic/web-service/internal/model"
 )
@@ -77,6 +78,36 @@ func DeleteService(ctx context.Context, cl client.Client, accountName string, na
 	// the LB to clean up after the endpoint.
 	foreground := v1.DeletePropagationForeground
 	return cl.Delete(ctx, &service.Service, &client.DeleteOptions{PropagationPolicy: &foreground})
+}
+
+func DeleteCluster(ctx context.Context, cl client.Client, accountName string, serviceName string, cluster string) error {
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		service, err := ReadService(ctx, cl, accountName, serviceName)
+		if err != nil {
+			return err
+		}
+
+		if err := service.Service.RemoveUpstream(cluster); err != nil {
+			return err
+		}
+
+		if err := cl.Update(ctx, &service.Service); err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func DeleteClusterReps(ctx context.Context, cl client.Client, accountName string, serviceName string, cluster string) error {
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		// Delete the endpoints that belong to this cluster
+		return cl.DeleteAllOf(
+			ctx,
+			&epicv1.RemoteEndpoint{},
+			client.InNamespace(epicv1.AccountNamespace(accountName)),
+			client.MatchingLabels{epicv1.OwningLoadBalancerLabel: serviceName, epicv1.OwningClusterLabel: cluster})
+	})
 }
 
 // DeleteEndpoint deletes the specified load balancer.

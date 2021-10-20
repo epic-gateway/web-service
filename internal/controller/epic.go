@@ -289,34 +289,23 @@ func (g *EPIC) showCluster(w http.ResponseWriter, r *http.Request) {
 func (g *EPIC) deleteCluster(w http.ResponseWriter, r *http.Request) {
 	var (
 		err     error
-		service *model.Service
 	)
 	vars := mux.Vars(r)
 
 	cluster, err := url.QueryUnescape(vars["cluster"])
 	if err != nil {
-		fmt.Printf("GET cluster failed %s/%s %s %#v\n", vars["account"], vars["service"], cluster, err)
+		fmt.Printf("DELETE cluster failed %s/%s %s %#v\n", vars["account"], vars["service"], cluster, err)
 		util.RespondBad(w, err)
 	}
 
-	service, err = db.ReadService(r.Context(), g.client, vars["account"], vars["service"])
-	if err != nil {
-		fmt.Printf("GET cluster failed %s/%s %s %#v\n", vars["account"], vars["service"], cluster, err)
-		util.RespondNotFound(w, err)
-	}
-
-	if err := service.Service.RemoveUpstream(cluster); err != nil {
-		fmt.Printf("GET cluster failed %#v\n", err)
-		util.RespondNotFound(w, err)
-		return
-	}
-
-	err = g.client.Update(r.Context(), &service.Service)
-	if err != nil {
-		// Something went wrong
-		fmt.Printf("POST cluster failed %#v\n", err)
+	if err = db.DeleteCluster(r.Context(), g.client, vars["account"], vars["service"], cluster); err != nil {
+		fmt.Printf("DELETE cluster failed %s/%s %s %#v\n", vars["account"], vars["service"], cluster, err)
 		util.RespondError(w, err)
-		return
+	}
+
+	if err = db.DeleteClusterReps(r.Context(), g.client, vars["account"], vars["service"], cluster); err != nil {
+		fmt.Printf("DELETE cluster failed %s/%s %s %#v\n", vars["account"], vars["service"], cluster, err)
+		util.RespondError(w, err)
 	}
 
 	fmt.Printf("DELETE cluster OK %s/%s %s\n", vars["account"], vars["service"], cluster)
