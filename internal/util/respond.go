@@ -6,6 +6,10 @@ import (
 	"net/http"
 )
 
+const (
+	errorMessageHeader = "x-epic-error-message"
+)
+
 // EmptyHeader is a convenient way to tell RespondJSON that you don't
 // have any headers to send.
 var EmptyHeader = map[string]string{}
@@ -34,9 +38,10 @@ func RespondJSONString(w http.ResponseWriter, payload string) {
 	w.Write([]byte(payload))
 }
 
-// RespondProblem sends an HTTP response.
+// RespondProblem sends an HTTP response. The message argument will be
+// sent in the body and also as a header.
 func RespondProblem(w http.ResponseWriter, code int, message string) {
-	RespondJSON(w, code, map[string]string{"error": message}, EmptyHeader)
+	RespondJSON(w, code, map[string]string{"error": message}, map[string]string{errorMessageHeader: message})
 }
 
 // RespondError sends an HTTP 5xx "internal server error" response.
