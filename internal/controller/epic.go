@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
-	"time"
 
 	"github.com/gorilla/mux"
 	epicv1 "gitlab.com/acnodal/epic/resource-model/api/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"acnodal.io/epic/web-service/internal/db"
@@ -168,9 +168,10 @@ func (g *EPIC) deleteService(w http.ResponseWriter, r *http.Request) {
 
 func (g *EPIC) createServiceCluster(w http.ResponseWriter, r *http.Request) {
 	var (
-		err     error
-		service *model.Service
-		body    ClusterCreateRequest
+		err        error
+		service    *model.Service
+		body       ClusterCreateRequest
+		patchBytes []byte
 	)
 	vars := mux.Vars(r)
 
@@ -197,39 +198,58 @@ func (g *EPIC) createServiceCluster(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tries := 3
-	for err = fmt.Errorf(""); err != nil && tries > 0; tries-- {
-		service, err = db.ReadService(r.Context(), g.client, vars["account"], vars["service"])
-		if err != nil {
-			fmt.Printf("POST cluster failed %s/%s/%s %#v\n", vars["account"], vars["service"], body.ClusterID, err)
-			util.RespondNotFound(w, err)
-		}
+	service, err = db.ReadService(r.Context(), g.client, vars["account"], vars["service"])
+	if err != nil {
+		fmt.Printf("POST cluster failed %s/%s/%s %#v\n", vars["account"], vars["service"], body.ClusterID, err)
+		util.RespondNotFound(w, err)
+	}
 
-		// Add the new upstream to the object, and error if it's already
-		// there
-		if err := service.Service.AddUpstream(body.ClusterID); err != nil {
-			fmt.Printf("Duplicate cluster %#v: %s\n", body.ClusterID, err)
+	// Check if the LB already has this cluster and error if it does
+	if err := service.Service.AddUpstream(body.ClusterID); err != nil {
+		fmt.Printf("Duplicate cluster %#v: %s\n", body.ClusterID, err)
 
-			// The LB already had that cluster
-			util.RespondConflict(
-				w,
-				map[string]interface{}{"message": err.Error(), "link": model.Links{"self": selfURL.String()}},
-				map[string]string{"Location": selfURL.String()},
-			)
-			return
-		}
+		// The LB already had that cluster
+		util.RespondConflict(
+			w,
+			map[string]interface{}{"message": err.Error(), "link": model.Links{"self": selfURL.String()}},
+			map[string]string{"Location": selfURL.String()},
+		)
+		return
+	}
 
-		// Apply the update
-		err = g.client.Update(r.Context(), &service.Service)
+	// Prepare the patch. Start with an empty patch and add operations
+	// to it.
+	patch := []map[string]interface{}{}
 
-		// Pause a tick if the update failed to let whatever is clashing
-		// with us finish their work
-		if err != nil {
-			fmt.Printf("lb %s update conflict: %+v\n", vars["service"], err)
-			time.Sleep(100 * time.Millisecond)
-		} else {
-			fmt.Printf("lb %s update success\n", vars["service"])
-		}
+	// If this is the first cluster that we're adding to this LB then
+	// we need to initialize Spec.UpstreamClusters with an empty array
+	// first
+	if len(service.Service.Spec.UpstreamClusters) == 1 {
+		patch = append(patch, map[string]interface{}{
+			"op":    "add",
+			"path":  "/spec/upstream-clusters",
+			"value": []string{},
+		})
+	}
+
+	// Add the cluster to the upstream-clusters array
+	patch = append(patch, map[string]interface{}{
+		"op":    "add",
+		"path":  "/spec/upstream-clusters/-",
+		"value": body.ClusterID,
+	})
+
+	// apply the patch
+	if patchBytes, err = json.Marshal(patch); err != nil {
+		fmt.Printf("POST cluster failed %#v\n", err)
+		util.RespondError(w, err)
+		return
+	}
+	if err = g.client.Patch(r.Context(), &service.Service, client.RawPatch(types.JSONPatchType, patchBytes)); err != nil {
+		fmt.Println(string(patchBytes))
+		fmt.Printf("POST cluster failed %#v\n", err)
+		util.RespondError(w, err)
+		return
 	}
 
 	if err != nil {
@@ -288,7 +308,7 @@ func (g *EPIC) showCluster(w http.ResponseWriter, r *http.Request) {
 
 func (g *EPIC) deleteCluster(w http.ResponseWriter, r *http.Request) {
 	var (
-		err     error
+		err error
 	)
 	vars := mux.Vars(r)
 
