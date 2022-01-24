@@ -24,6 +24,7 @@ rules:
   - serviceprefixes
   - loadbalancers
   - remoteendpoints
+  - gwroutes
   verbs:
   - get
   - list
@@ -33,6 +34,7 @@ rules:
   resources:
   - loadbalancers
   - remoteendpoints
+  - gwroutes
   verbs:
   - create
   - update

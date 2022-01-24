@@ -472,7 +472,13 @@ func (g *EPIC) showAccount(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	account, err := db.ReadAccount(r.Context(), g.client, vars["account"])
 	if err == nil {
-		account.Links = model.Links{"self": r.RequestURI}
+		rtLink, err := g.router.Get("account-routes").URL("account", vars["account"])
+		if err != nil {
+			fmt.Printf("GET account failed %s: %s\n", vars["account"], err)
+			util.RespondError(w, err)
+			return
+		}
+		account.Links = model.Links{"self": r.RequestURI, "create-route": rtLink.String()}
 		util.RespondJSON(w, http.StatusOK, account, util.EmptyHeader)
 		return
 	}
@@ -491,12 +497,16 @@ func SetupEPICRoutes(router *mux.Router, client client.Client) {
 	router.HandleFunc("/accounts/{account}/services/{service}/endpoints/{endpoint}", epic.showEndpoint).Methods(http.MethodGet).Name("endpoint")
 	router.HandleFunc("/accounts/{account}/services/{service}/endpoints/{endpoint}", epic.deleteEndpoint).Methods(http.MethodDelete)
 	router.HandleFunc("/accounts/{account}/services/{service}/endpoints", epic.createServiceEndpoint).Methods(http.MethodPost)
+
 	router.HandleFunc("/accounts/{account}/services/{service}/clusters/{cluster}", epic.showCluster).Methods(http.MethodGet).Name("cluster")
 	router.HandleFunc("/accounts/{account}/services/{service}/clusters/{cluster}", epic.deleteCluster).Methods(http.MethodDelete)
 	router.HandleFunc("/accounts/{account}/services/{service}/clusters", epic.createServiceCluster).Methods(http.MethodPost)
+
 	router.HandleFunc("/accounts/{account}/services/{service}", epic.deleteService).Methods(http.MethodDelete)
 	router.HandleFunc("/accounts/{account}/services/{service}", epic.showService).Methods(http.MethodGet).Name("service")
+
 	router.HandleFunc("/accounts/{account}/groups/{group}/services", epic.createService).Methods(http.MethodPost).Name("group-services")
 	router.HandleFunc("/accounts/{account}/groups/{group}", epic.showGroup).Methods(http.MethodGet).Name("group")
+
 	router.HandleFunc("/accounts/{account}", epic.showAccount).Methods(http.MethodGet).Name("account")
 }

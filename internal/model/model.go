@@ -76,3 +76,17 @@ func NewEndpoint() Endpoint {
 		Endpoint: epicv1.RemoteEndpoint{},
 	}
 }
+
+// Route represents a GWRoute on the wire.
+type Route struct {
+	Links Links          `json:"link"`
+	Route epicv1.GWRoute `json:"route"`
+}
+
+// NewRoute configures a new Route instance.
+func NewRoute() Route {
+	return Route{
+		Links: Links{},
+		Route: epicv1.GWRoute{},
+	}
+}
