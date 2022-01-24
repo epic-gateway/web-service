@@ -1,4 +1,4 @@
-FROM golang:alpine as builder
+FROM golang:1.17-alpine as builder
 
 ENV GOOS=linux
 ARG GITLAB_USER
@@ -17,7 +17,7 @@ RUN go build  -tags 'osusergo netgo' -o ../bin/web-service main.go
 
 
 # start fresh
-FROM golang:alpine
+FROM golang:1.17-alpine
 ENV bin=/opt/acnodal/bin/web-service
 
 # copy executables from the builder image
