@@ -25,6 +25,7 @@ rules:
   - loadbalancers
   - remoteendpoints
   - gwroutes
+  - gwproxies
   verbs:
   - get
   - list
@@ -35,6 +36,7 @@ rules:
   - loadbalancers
   - remoteendpoints
   - gwroutes
+  - gwproxies
   verbs:
   - create
   - update

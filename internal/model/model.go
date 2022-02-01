@@ -51,6 +51,20 @@ func NewService() Service {
 	}
 }
 
+// Proxy represents a load balancer service on the wire.
+type Proxy struct {
+	Links Links          `json:"link"`
+	Proxy epicv1.GWProxy `json:"proxy"`
+}
+
+// NewProxy configures a new Proxy instance.
+func NewProxy() Proxy {
+	return Proxy{
+		Links: Links{},
+		Proxy: epicv1.GWProxy{},
+	}
+}
+
 // Cluster represents an LB upstream cluster on the wire.
 type Cluster struct {
 	Links Links `json:"link"`

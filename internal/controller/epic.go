@@ -461,7 +461,18 @@ func (g *EPIC) showGroup(w http.ResponseWriter, r *http.Request) {
 			util.RespondError(w, err)
 			return
 		}
-		group.Links = model.Links{"self": r.RequestURI, "account": acctLink.String(), "create-service": srvLink.String()}
+		proxyLink, err := g.router.Get("group-proxies").URL("account", vars["account"], "group", vars["group"])
+		if err != nil {
+			fmt.Printf("GET group failed %s/%s: %s\n", vars["account"], vars["group"], err)
+			util.RespondError(w, err)
+			return
+		}
+		group.Links = model.Links{
+			"self":           r.RequestURI,
+			"account":        acctLink.String(),
+			"create-service": srvLink.String(),
+			"create-proxy":   proxyLink.String(),
+		}
 		util.RespondJSON(w, http.StatusOK, group, util.EmptyHeader)
 		return
 	}

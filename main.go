@@ -68,6 +68,7 @@ func main() {
 	// set up web service
 	setupLog.Info("starting web service")
 	r := mux.NewRouter().UseEncodedPath()
+	controller.SetupGWProxyRoutes(r.PathPrefix(URLRoot).Subrouter(), mgr.GetClient())
 	controller.SetupGWRouteRoutes(r.PathPrefix(URLRoot).Subrouter(), mgr.GetClient())
 	controller.SetupEPICRoutes(r.PathPrefix(URLRoot).Subrouter(), mgr.GetClient())
 	controller.SetupHealthzRoutes(r.PathPrefix(URLRoot).Subrouter())

@@ -43,6 +43,23 @@ func ReadService(ctx context.Context, cl client.Client, accountName string, name
 	return &mservice, err
 }
 
+// ReadProxy reads one GWProxy resource from the cluster.
+func ReadProxy(ctx context.Context, cl client.Client, accountName string, name string) (*model.Proxy, error) {
+	var err error
+	mproxy := model.NewProxy()
+	tries := 2
+	for err = fmt.Errorf(""); err != nil && tries > 0; tries-- {
+		err = cl.Get(ctx, client.ObjectKey{Namespace: epicv1.AccountNamespace(accountName), Name: name}, &mproxy.Proxy)
+		if err != nil {
+			fmt.Printf("problem reading proxy %s/%s: %s\n", accountName, name, err)
+			if tries > 1 {
+				time.Sleep(1 * time.Second)
+			}
+		}
+	}
+	return &mproxy, err
+}
+
 // ReadEndpoint reads one service endpoint from the cluster.
 func ReadEndpoint(ctx context.Context, cl client.Client, accountName string, name string) (*model.Endpoint, error) {
 	var err error
@@ -110,6 +127,26 @@ func DeleteService(ctx context.Context, cl client.Client, accountName string, na
 	// the LB to clean up after the endpoint.
 	foreground := v1.DeletePropagationForeground
 	return cl.Delete(ctx, &service.Service, &client.DeleteOptions{PropagationPolicy: &foreground})
+}
+
+// DeleteProxy deletes the specified GWProxy.
+func DeleteProxy(ctx context.Context, cl client.Client, accountName string, name string) error {
+	proxy, err := ReadProxy(ctx, cl, accountName, name)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Request object not found. Not great, but the client wanted
+			// the object gone and it's gone.
+			fmt.Printf("%s/%s not found. Ignoring since object must be deleted\n", accountName, name)
+			return nil
+		}
+		return err
+	}
+
+	// Delete with DeletePropagationForeground policy so endpoints are
+	// deleted before the LB. We do this because we need some info from
+	// the LB to clean up after the endpoint.
+	foreground := v1.DeletePropagationForeground
+	return cl.Delete(ctx, &proxy.Proxy, &client.DeleteOptions{PropagationPolicy: &foreground})
 }
 
 func DeleteCluster(ctx context.Context, cl client.Client, accountName string, serviceName string, cluster string) error {
