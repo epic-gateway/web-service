@@ -65,6 +65,20 @@ func NewProxy() Proxy {
 	}
 }
 
+// Slice represents an EndpointSlice on the wire.
+type Slice struct {
+	Links Links                  `json:"link"`
+	Slice epicv1.GWEndpointSlice `json:"slice"`
+}
+
+// NewSlice configures a new Slice instance.
+func NewSlice() Slice {
+	return Slice{
+		Links: Links{},
+		Slice: epicv1.GWEndpointSlice{},
+	}
+}
+
 // Cluster represents an LB upstream cluster on the wire.
 type Cluster struct {
 	Links Links `json:"link"`

@@ -483,13 +483,23 @@ func (g *EPIC) showAccount(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	account, err := db.ReadAccount(r.Context(), g.client, vars["account"])
 	if err == nil {
-		rtLink, err := g.router.Get("account-routes").URL("account", vars["account"])
+		routeLink, err := g.router.Get("account-routes").URL("account", vars["account"])
 		if err != nil {
 			fmt.Printf("GET account failed %s: %s\n", vars["account"], err)
 			util.RespondError(w, err)
 			return
 		}
-		account.Links = model.Links{"self": r.RequestURI, "create-route": rtLink.String()}
+		sliceLink, err := g.router.Get("account-slices").URL("account", vars["account"])
+		if err != nil {
+			fmt.Printf("GET account failed %s: %s\n", vars["account"], err)
+			util.RespondError(w, err)
+			return
+		}
+		account.Links = model.Links{
+			"self":         r.RequestURI,
+			"create-route": routeLink.String(),
+			"create-slice": sliceLink.String(),
+		}
 		util.RespondJSON(w, http.StatusOK, account, util.EmptyHeader)
 		return
 	}

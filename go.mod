@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/gorilla/mux v1.7.4
-	gitlab.com/acnodal/epic/resource-model v0.18.0-dev3
+	gitlab.com/acnodal/epic/resource-model v0.18.0-dev8
 	k8s.io/apimachinery v0.22.1
 	k8s.io/client-go v0.22.1
 	sigs.k8s.io/controller-runtime v0.9.6

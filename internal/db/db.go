@@ -109,6 +109,27 @@ func DeleteRoute(ctx context.Context, cl client.Client, accountName string, rout
 	return cl.Delete(ctx, &route.Route)
 }
 
+// ReadSlice reads one endpoint slice from the cluster.
+func ReadSlice(ctx context.Context, cl client.Client, accountName string, sliceName string) (*model.Slice, error) {
+	mslice := model.NewSlice()
+	return &mslice, cl.Get(ctx, client.ObjectKey{Namespace: epicv1.AccountNamespace(accountName), Name: sliceName}, &mslice.Slice)
+}
+
+// DeleteSlice deletes the specified endpoint slice.
+func DeleteSlice(ctx context.Context, cl client.Client, accountName string, sliceName string) error {
+	slice, err := ReadSlice(ctx, cl, accountName, sliceName)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Request object not found. Not great, but the client wanted
+			// the object gone and it's gone.
+			fmt.Printf("%s/%s not found\n", accountName, sliceName)
+			return nil
+		}
+		return err
+	}
+	return cl.Delete(ctx, &slice.Slice)
+}
+
 // DeleteService deletes the specified load balancer.
 func DeleteService(ctx context.Context, cl client.Client, accountName string, name string) error {
 	service, err := ReadService(ctx, cl, accountName, name)

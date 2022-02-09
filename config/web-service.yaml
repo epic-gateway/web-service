@@ -26,6 +26,7 @@ rules:
   - remoteendpoints
   - gwroutes
   - gwproxies
+  - gwendpointslices
   verbs:
   - get
   - list
@@ -37,6 +38,7 @@ rules:
   - remoteendpoints
   - gwroutes
   - gwproxies
+  - gwendpointslices
   verbs:
   - create
   - update

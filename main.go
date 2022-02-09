@@ -70,6 +70,7 @@ func main() {
 	r := mux.NewRouter().UseEncodedPath()
 	controller.SetupGWProxyRoutes(r.PathPrefix(URLRoot).Subrouter(), mgr.GetClient())
 	controller.SetupGWRouteRoutes(r.PathPrefix(URLRoot).Subrouter(), mgr.GetClient())
+	controller.SetupSliceRoutes(r.PathPrefix(URLRoot).Subrouter(), mgr.GetClient())
 	controller.SetupEPICRoutes(r.PathPrefix(URLRoot).Subrouter(), mgr.GetClient())
 	controller.SetupHealthzRoutes(r.PathPrefix(URLRoot).Subrouter())
 
