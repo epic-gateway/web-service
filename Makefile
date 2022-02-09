@@ -3,7 +3,6 @@ PREFIX ?= web-service
 SUFFIX ?= ${USER}-dev
 
 TAG ?= ${REPO}/${PREFIX}:${SUFFIX}
-DOCKERFILE ?= build/package/Dockerfile
 
 ##@ Default Goal
 .PHONY: help
@@ -30,7 +29,7 @@ run: ## Run the service using "go run" (KUBECONFIG needs to be set)
 	go run ./main.go
 
 image:	## Build the Docker image (GITLAB_AUTHN needs to be set)
-	docker build --build-arg=GITLAB_USER --build-arg=GITLAB_PASSWORD --file=${DOCKERFILE} --tag=${TAG} ${DOCKER_BUILD_OPTIONS} .
+	docker build --build-arg=GITLAB_USER --build-arg=GITLAB_PASSWORD --tag=${TAG} ${DOCKER_BUILD_OPTIONS} .
 
 install:	image ## Push the image to the registry
 	docker push ${TAG}
