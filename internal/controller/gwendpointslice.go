@@ -117,11 +117,57 @@ func (g *SliceController) del(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// put implements the HTTP PUT method, which updates an existing
+// slice.
+func (g *SliceController) put(w http.ResponseWriter, r *http.Request) {
+	var (
+		err  error
+		body model.Slice
+	)
+	urlParams := mux.Vars(r)
+
+	// See if the slice exists, return 404 if not
+	_, err = db.ReadSlice(r.Context(), g.client, urlParams["account"], urlParams["slice"])
+	if err != nil {
+		fmt.Printf("PUT endpointSlice failed %s/%s %#v\n", urlParams["account"], urlParams["slice"], err)
+		util.RespondNotFound(w, err)
+		return
+	}
+
+	// Decode the request body.
+	err = json.NewDecoder(r.Body).Decode(&body)
+	if err != nil {
+		fmt.Printf("PUT endpointSlice failed %s/%s %s\n", urlParams["account"], urlParams["slice"], err)
+		util.RespondBad(w, err)
+		return
+	}
+
+	// Update the slice.
+	err = db.UpdateSlice(r.Context(), g.client, urlParams["account"], urlParams["slice"], &body.Slice)
+	if err != nil {
+		fmt.Printf("PUT endpointSlice failed %s\n", err)
+		util.RespondError(w, err)
+		return
+	}
+
+	// Redirect back to this slice's GET endpoint.
+	selfURL, err := g.router.Get("slice").URL("account", urlParams["account"], "slice", urlParams["slice"])
+	if err != nil {
+		fmt.Printf("PUT endpointSlice failed %s/%s: %s\n", urlParams["account"], urlParams["slice"], err)
+		util.RespondError(w, err)
+		return
+	}
+	fmt.Printf("PUT endpointSlice OK %v %#v\n", urlParams["account"], body.Slice.Spec)
+	http.Redirect(w, r, selfURL.String(), http.StatusFound)
+	return
+}
+
 // SetupSliceRoutes sets up the provided mux.Router to handle the web
 // service routes.
 func SetupSliceRoutes(router *mux.Router, client client.Client) {
 	sliceCtrl := &SliceController{client: client, router: router}
 	router.HandleFunc("/accounts/{account}/slices/{slice}", sliceCtrl.del).Methods(http.MethodDelete)
 	router.HandleFunc("/accounts/{account}/slices/{slice}", sliceCtrl.show).Methods(http.MethodGet).Name("slice")
+	router.HandleFunc("/accounts/{account}/slices/{slice}", sliceCtrl.put).Methods(http.MethodPut)
 	router.HandleFunc("/accounts/{account}/slices", sliceCtrl.create).Methods(http.MethodPost).Name("account-slices")
 }
