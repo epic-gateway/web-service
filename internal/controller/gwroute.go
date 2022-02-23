@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 
 	"github.com/gorilla/mux"
 	epicv1 "gitlab.com/acnodal/epic/resource-model/api/v1"
@@ -12,6 +13,10 @@ import (
 	"acnodal.io/epic/web-service/internal/db"
 	"acnodal.io/epic/web-service/internal/model"
 	"acnodal.io/epic/web-service/internal/util"
+)
+
+var (
+	duplicateRoute = regexp.MustCompile(`^gwroutes.epic.acnodal.io "(.*)" already exists$`)
 )
 
 // GWRoute implements the server side of the GWRoute web service
@@ -46,17 +51,31 @@ func (g *GWRoute) create(w http.ResponseWriter, r *http.Request) {
 	body.Route.Namespace = epicv1.AccountNamespace(vars["account"])
 	body.Route.Name = body.Route.Spec.ClientRef.UID
 
-	// Create the route
-	if err := g.client.Create(r.Context(), &body.Route); err != nil {
-		// Something went wrong
-		fmt.Printf("POST route failed %#v %#v\n", body, err)
+	selfURL, err := g.router.Get("route").URL("account", vars["account"], "route", body.Route.Name)
+	if err != nil {
+		fmt.Printf("POST route failed %s/%s/%s: %s\n", vars["account"], vars["service"], body.Route.Name, err)
 		util.RespondError(w, err)
 		return
 	}
 
-	selfURL, err := g.router.Get("route").URL("account", vars["account"], "route", body.Route.Name)
-	if err != nil {
-		fmt.Printf("POST route failed %s/%s/%s: %s\n", vars["account"], vars["service"], body.Route.Name, err)
+	// Create the route
+	if err := g.client.Create(r.Context(), &body.Route); err != nil {
+		matches := duplicateRoute.FindStringSubmatch(err.Error())
+		if len(matches) > 0 {
+			fmt.Printf("POST route 409/duplicate %s/%s\n", vars["account"], body.Route.Name)
+
+			// We already had that route, but we can return what we hope the
+			// client needs.
+			util.RespondConflict(
+				w,
+				map[string]interface{}{"message": err.Error(), "link": model.Links{"self": selfURL.String()}},
+				map[string]string{"Location": selfURL.String()},
+			)
+			return
+		}
+
+		// Something else went wrong
+		fmt.Printf("POST route failed %#v %#v\n", body, err)
 		util.RespondError(w, err)
 		return
 	}
