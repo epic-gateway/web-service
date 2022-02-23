@@ -8,6 +8,7 @@ import (
 
 	"github.com/gorilla/mux"
 	epicv1 "gitlab.com/acnodal/epic/resource-model/api/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"acnodal.io/epic/web-service/internal/db"
@@ -120,6 +121,7 @@ func (g *GWProxy) get(w http.ResponseWriter, r *http.Request) {
 			"self":  fmt.Sprintf("%s", r.RequestURI),
 			"group": groupLink.String(),
 		}
+		proxy.Proxy.ObjectMeta = metav1.ObjectMeta{}
 		fmt.Printf("GET proxy OK %s/%s\n", vars["account"], vars["proxy"])
 		util.RespondJSON(w, http.StatusOK, proxy, util.EmptyHeader)
 		return

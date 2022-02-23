@@ -8,6 +8,7 @@ import (
 
 	"github.com/gorilla/mux"
 	epicv1 "gitlab.com/acnodal/epic/resource-model/api/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"acnodal.io/epic/web-service/internal/db"
@@ -84,6 +85,7 @@ func (g *SliceController) show(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	endpointSlice, err := db.ReadSlice(r.Context(), g.client, vars["account"], vars["slice"])
 	if err == nil {
+		endpointSlice.Slice.ObjectMeta = metav1.ObjectMeta{}
 		endpointSlice.Links = model.Links{
 			"self": fmt.Sprintf("%s", r.RequestURI),
 		}

@@ -8,6 +8,7 @@ import (
 
 	"github.com/gorilla/mux"
 	epicv1 "gitlab.com/acnodal/epic/resource-model/api/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"acnodal.io/epic/web-service/internal/db"
@@ -92,6 +93,7 @@ func (g *GWRoute) show(w http.ResponseWriter, r *http.Request) {
 		route.Links = model.Links{
 			"self": fmt.Sprintf("%s", r.RequestURI),
 		}
+		route.Route.ObjectMeta = metav1.ObjectMeta{}
 
 		fmt.Printf("GET route OK %s/%s\n", vars["account"], vars["route"])
 		util.RespondJSON(w, http.StatusOK, route, util.EmptyHeader)
