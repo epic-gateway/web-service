@@ -115,11 +115,63 @@ func (g *GWRoute) del(w http.ResponseWriter, r *http.Request) {
 	util.RespondError(w, err)
 }
 
+// put implements the HTTP PUT method, which updates an existing
+// route.
+func (g *GWRoute) put(w http.ResponseWriter, r *http.Request) {
+	var (
+		err  error
+		body model.Route
+	)
+	urlParams := mux.Vars(r)
+
+	// See if the route exists, return 404 if not
+	_, err = db.ReadRoute(r.Context(), g.client, urlParams["account"], urlParams["route"])
+	if err != nil {
+		fmt.Printf("PUT route failed %s/%s %#v\n", urlParams["account"], urlParams["route"], err)
+		util.RespondNotFound(w, err)
+		return
+	}
+
+	// Decode the request body.
+	err = json.NewDecoder(r.Body).Decode(&body)
+	if err != nil {
+		fmt.Printf("PUT route failed %s/%s %s\n", urlParams["account"], urlParams["route"], err)
+		util.RespondBad(w, err)
+		return
+	}
+
+	// Patch the route namespace and name. The GWRoute will live in the
+	// account's namespace, and its name will be the HTTPRoute's UID
+	// since that's unique.
+	body.Route.Namespace = epicv1.AccountNamespace(urlParams["account"])
+	body.Route.Name = body.Route.Spec.ClientRef.UID
+
+	// Update the route.
+	err = db.UpdateRoute(r.Context(), g.client, urlParams["account"], urlParams["route"], &body.Route)
+	if err != nil {
+		fmt.Printf("PUT route failed %s\n", err)
+		util.RespondError(w, err)
+		return
+	}
+
+	// Redirect back to this route's GET endpoint.
+	selfURL, err := g.router.Get("route").URL("account", urlParams["account"], "route", urlParams["route"])
+	if err != nil {
+		fmt.Printf("PUT route failed %s/%s: %s\n", urlParams["account"], urlParams["route"], err)
+		util.RespondError(w, err)
+		return
+	}
+	fmt.Printf("PUT route OK %v %#v\n", urlParams["account"], body.Route.Spec)
+	http.Redirect(w, r, selfURL.String(), http.StatusFound)
+	return
+}
+
 // SetupEPICRoutes sets up the provided mux.Router to handle the web
 // service routes.
 func SetupGWRouteRoutes(router *mux.Router, client client.Client) {
 	routeCon := &GWRoute{client: client, router: router}
 	router.HandleFunc("/accounts/{account}/routes/{route}", routeCon.show).Methods(http.MethodGet).Name("route")
 	router.HandleFunc("/accounts/{account}/routes/{route}", routeCon.del).Methods(http.MethodDelete)
+	router.HandleFunc("/accounts/{account}/routes/{route}", routeCon.put).Methods(http.MethodPut)
 	router.HandleFunc("/accounts/{account}/routes", routeCon.create).Methods(http.MethodPost).Name("account-routes")
 }
