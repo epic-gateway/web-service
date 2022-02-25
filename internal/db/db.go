@@ -7,6 +7,7 @@ import (
 
 	epicv1 "gitlab.com/acnodal/epic/resource-model/api/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -99,7 +100,15 @@ func DeleteService(ctx context.Context, cl client.Client, accountName string, na
 
 // DeleteProxy deletes the specified GWProxy.
 func DeleteProxy(ctx context.Context, cl client.Client, accountName string, name string) error {
-	proxy, err := ReadProxy(ctx, cl, accountName, name)
+	err := cl.Delete(
+		ctx,
+		&epicv1.GWProxy{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: epicv1.AccountNamespace(accountName),
+				Name:      name,
+			},
+		},
+	)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found. Not great, but the client wanted
@@ -110,11 +119,7 @@ func DeleteProxy(ctx context.Context, cl client.Client, accountName string, name
 		return err
 	}
 
-	// Delete with DeletePropagationForeground policy so endpoints are
-	// deleted before the LB. We do this because we need some info from
-	// the LB to clean up after the endpoint.
-	foreground := v1.DeletePropagationForeground
-	return cl.Delete(ctx, &proxy.Proxy, &client.DeleteOptions{PropagationPolicy: &foreground})
+	return nil
 }
 
 func DeleteCluster(ctx context.Context, cl client.Client, accountName string, serviceName string, cluster string) error {

@@ -7,6 +7,7 @@ import (
 
 	epicv1 "gitlab.com/acnodal/epic/resource-model/api/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -44,17 +45,26 @@ func UpdateRoute(ctx context.Context, cl client.Client, accountName string, rout
 	})
 }
 
-// DeleteRoute deletes the specified load balancer.
-func DeleteRoute(ctx context.Context, cl client.Client, accountName string, routeName string) error {
-	route, err := ReadRoute(ctx, cl, accountName, routeName)
+// DeleteRoute deletes the specified GWRoute.
+func DeleteRoute(ctx context.Context, cl client.Client, accountName string, name string) error {
+	err := cl.Delete(
+		ctx,
+		&epicv1.GWRoute{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: epicv1.AccountNamespace(accountName),
+				Name:      name,
+			},
+		},
+	)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found. Not great, but the client wanted
 			// the object gone and it's gone.
-			fmt.Printf("%s/%s not found. Ignoring since object must be deleted\n", accountName, routeName)
+			fmt.Printf("%s/%s not found. Ignoring since object must be deleted\n", accountName, name)
 			return nil
 		}
 		return err
 	}
-	return cl.Delete(ctx, &route.Route)
+
+	return nil
 }
