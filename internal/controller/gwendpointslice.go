@@ -41,6 +41,12 @@ func (g *SliceController) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Set a link to the owning account.
+	if body.Slice.Labels == nil {
+		body.Slice.Labels = map[string]string{}
+	}
+	body.Slice.Labels[epicv1.OwningAccountLabel] = urlParams["account"]
+
 	// Patch the namespace and name. The GWEndpointSlice will live in
 	// the account's namespace, and its name will be the EndpointSlice's
 	// UID since that's unique.

@@ -59,10 +59,11 @@ func (g *GWProxy) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set links to the owning service group and prefix
+	// Set links to the owning account, service group, and prefix
 	if body.Proxy.Labels == nil {
 		body.Proxy.Labels = map[string]string{}
 	}
+	body.Proxy.Labels[epicv1.OwningAccountLabel] = vars["account"]
 	body.Proxy.Labels[epicv1.OwningLBServiceGroupLabel] = vars["group"]
 	body.Proxy.Labels[epicv1.OwningServicePrefixLabel] = group.Group.Labels[epicv1.OwningServicePrefixLabel]
 

@@ -46,6 +46,12 @@ func (g *GWRoute) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Set a link to the owning account.
+	if body.Route.Labels == nil {
+		body.Route.Labels = map[string]string{}
+	}
+	body.Route.Labels[epicv1.OwningAccountLabel] = vars["account"]
+
 	// Patch the route namespace and name. The GWRoute will live in the
 	// account's namespace, and its name will be the HTTPRoute's UID
 	// since that's unique.
