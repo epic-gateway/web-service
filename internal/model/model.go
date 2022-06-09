@@ -37,20 +37,6 @@ func NewGroup() Group {
 	}
 }
 
-// Service represents a load balancer service on the wire.
-type Service struct {
-	Links   Links               `json:"link"`
-	Service epicv1.LoadBalancer `json:"service"`
-}
-
-// NewService configures a new Service instance.
-func NewService() Service {
-	return Service{
-		Links:   Links{},
-		Service: epicv1.LoadBalancer{},
-	}
-}
-
 // Proxy represents a load balancer service on the wire.
 type Proxy struct {
 	Links Links          `json:"link"`
@@ -76,32 +62,6 @@ func NewSlice() Slice {
 	return Slice{
 		Links: Links{},
 		Slice: epicv1.GWEndpointSlice{},
-	}
-}
-
-// Cluster represents an LB upstream cluster on the wire.
-type Cluster struct {
-	Links Links `json:"link"`
-}
-
-// NewCluster configures a new Cluster instance.
-func NewCluster() Cluster {
-	return Cluster{
-		Links: Links{},
-	}
-}
-
-// Endpoint represents a load balancer endpoint on the wire.
-type Endpoint struct {
-	Links    Links                 `json:"link"`
-	Endpoint epicv1.RemoteEndpoint `json:"endpoint"`
-}
-
-// NewEndpoint configures a new Endpoint instance.
-func NewEndpoint() Endpoint {
-	return Endpoint{
-		Links:    Links{},
-		Endpoint: epicv1.RemoteEndpoint{},
 	}
 }
 
