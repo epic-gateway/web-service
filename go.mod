@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/gorilla/mux v1.7.4
-	gitlab.com/acnodal/epic/resource-model v0.26.0
+	gitlab.com/acnodal/epic/resource-model v0.39.0
 	k8s.io/apimachinery v0.22.1
 	k8s.io/client-go v0.22.1
 	sigs.k8s.io/controller-runtime v0.9.6
@@ -69,7 +69,7 @@ require (
 	k8s.io/klog/v2 v2.10.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20210421082810-95288971da7e // indirect
 	k8s.io/utils v0.0.0-20210820185131-d34e5cb4466e // indirect
-	sigs.k8s.io/gateway-api v0.4.1 // indirect
+	sigs.k8s.io/gateway-api v0.4.3 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.1.2 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
