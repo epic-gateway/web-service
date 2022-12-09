@@ -4,10 +4,10 @@ go 1.17
 
 require (
 	github.com/gorilla/mux v1.8.0
-	gitlab.com/acnodal/epic/resource-model v0.42.0
-	k8s.io/apimachinery v0.24.1
-	k8s.io/client-go v0.24.1
-	sigs.k8s.io/controller-runtime v0.12.1
+	gitlab.com/acnodal/epic/resource-model v0.47.0
+	k8s.io/apimachinery v0.24.2
+	k8s.io/client-go v0.24.2
+	sigs.k8s.io/controller-runtime v0.12.3
 )
 
 require (
@@ -19,6 +19,7 @@ require (
 	github.com/census-instrumentation/opencensus-proto v0.2.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/cncf/xds/go v0.0.0-20210312221358-fbca930ec8ed // indirect
+	github.com/containernetworking/plugins v0.8.7 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/go-restful v2.10.0+incompatible // indirect
 	github.com/envoyproxy/go-control-plane v0.9.9 // indirect
@@ -39,8 +40,10 @@ require (
 	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/google/uuid v1.1.2 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
+	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/k8snetworkplumbingwg/network-attachment-definition-client v0.0.0-20200626054723-37f83d1996bc // indirect
 	github.com/mailru/easyjson v0.7.6 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -52,9 +55,11 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
+	github.com/spf13/cobra v1.4.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/vishvananda/netlink v1.1.0 // indirect
 	github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df // indirect
+	gitlab.com/acnodal/packet-forwarding-component/src/go v0.0.0-20201020212529-ed4982208c08 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.19.1 // indirect
@@ -72,9 +77,9 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
-	k8s.io/api v0.24.1 // indirect
-	k8s.io/apiextensions-apiserver v0.24.1 // indirect
-	k8s.io/component-base v0.24.1 // indirect
+	k8s.io/api v0.24.2 // indirect
+	k8s.io/apiextensions-apiserver v0.24.2 // indirect
+	k8s.io/component-base v0.24.2 // indirect
 	k8s.io/klog/v2 v2.60.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20220328201542-3ee0da9b0b42 // indirect
 	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 // indirect
