@@ -1,7 +1,7 @@
 package model
 
 import (
-	epicv1 "gitlab.com/acnodal/epic/resource-model/api/v1"
+	epicv1 "epic-gateway.org/resource-model/api/v1"
 )
 
 // Links is a map of URL links from this object to others. Keys are

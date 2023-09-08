@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"regexp"
 
+	epicv1 "epic-gateway.org/resource-model/api/v1"
 	"github.com/gorilla/mux"
-	epicv1 "gitlab.com/acnodal/epic/resource-model/api/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 

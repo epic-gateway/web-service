@@ -17,7 +17,7 @@ import (
 
 	"acnodal.io/epic/web-service/internal/controller"
 
-	epicv1 "gitlab.com/acnodal/epic/resource-model/api/v1"
+	epicv1 "epic-gateway.org/resource-model/api/v1"
 	// +kubebuilder:scaffold:imports
 )
 

@@ -1,4 +1,4 @@
-REPO ?= registry.gitlab.com/acnodal/epic
+REPO ?= quay.io/epic-gateway
 PREFIX ?= web-service
 SUFFIX ?= ${USER}-dev
 
@@ -20,23 +20,23 @@ help: ## Display this help
 
 ##@ Development Goals
 
-.PHONY: check
-check: ## Run some code quality checks
+.PHONY: test
+test: ## Run some code quality checks
 	go vet ./...
 	go test -race -short ./...
 
 run: ## Run the service using "go run" (KUBECONFIG needs to be set)
 	go run ./main.go
 
-image:	## Build the Docker image (GITLAB_AUTHN needs to be set)
-	docker build --build-arg=GITLAB_USER --build-arg=GITLAB_PASSWORD --tag=${TAG} ${DOCKER_BUILD_OPTIONS} .
+docker-build:	## Build the Docker image
+	docker build --tag=${TAG} ${DOCKER_BUILD_OPTIONS} .
 
-install:	image ## Push the image to the registry
+docker-push:	image ## Push the image to the registry
 	docker push ${TAG}
 
 .PHONY: manifest
 manifest: deploy/web-service.yaml
 
 deploy/web-service.yaml: config/web-service.yaml
-	sed "s registry.gitlab.com/acnodal/epic/web-service:unknown ${TAG} " < $^ > $@
+	sed "s quay.io/epic-gateway/web-service:unknown ${TAG} " < $^ > $@
 	cp deploy/web-service.yaml deploy/web-service-${SUFFIX}.yaml

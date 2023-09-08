@@ -88,15 +88,13 @@ spec:
     spec:
       containers:
       - name: web-service
-        image: registry.gitlab.com/acnodal/epic/web-service:unknown
+        image: quay.io/epic-gateway/web-service:unknown
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
         securityContext:
           allowPrivilegeEscalation: true
           readOnlyRootFilesystem: true
-      imagePullSecrets:
-      - name: gitlab
       serviceAccountName: web-service
       terminationGracePeriodSeconds: 0
 ---
