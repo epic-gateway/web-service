@@ -31,7 +31,7 @@ run: ## Run the service using "go run" (KUBECONFIG needs to be set)
 docker-build:	## Build the Docker image
 	docker build --tag=${TAG} ${DOCKER_BUILD_OPTIONS} .
 
-docker-push:	image ## Push the image to the registry
+docker-push:	docker-build ## Push the image to the registry
 	docker push ${TAG}
 
 .PHONY: manifest
