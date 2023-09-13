@@ -9,7 +9,7 @@ TAG ?= ${REPO}/${PREFIX}:${SUFFIX}
 help: ## Display this help
 	@echo "Usage:"
 	@echo "  make <goal> [VAR=value ...]"
-	@echo ""
+	@echo
 	@echo "Variables"
 	@echo "  REPO   The registry part of the Docker tag"
 	@echo "  PREFIX Docker tag prefix (after the registry, before the suffix)"
@@ -28,10 +28,12 @@ test: ## Run some code quality checks
 run: ## Run the service using "go run" (KUBECONFIG needs to be set)
 	go run ./main.go
 
-docker-build:	## Build the Docker image
+.PHONY: image-build
+image-build:	## Build the Docker image
 	docker build --tag=${TAG} ${DOCKER_BUILD_OPTIONS} .
 
-docker-push:	docker-build ## Push the image to the registry
+.PHONY: image-push
+image-push:	## Push the image to the registry
 	docker push ${TAG}
 
 .PHONY: manifest

@@ -17,7 +17,7 @@ docker:
   - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
 
   script:
-  - make SUFFIX=${TAG_SPECIFIC} GITLAB_USER=gitlab-ci-token GITLAB_PASSWORD=${CI_JOB_TOKEN} manifest install
+  - make SUFFIX=${TAG_SPECIFIC} GITLAB_USER=gitlab-ci-token GITLAB_PASSWORD=${CI_JOB_TOKEN} manifest image-build image-push
   - 'curl --silent --show-error --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file deploy/web-service.yaml "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/manifest/${TAG_SPECIFIC}/web-service.yaml"'
 
   artifacts:

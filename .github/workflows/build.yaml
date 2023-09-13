@@ -8,7 +8,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-      with: {submodules: recursive}
 
     - uses: actions/setup-go@v4
       with: {go-version: '=1.19.8'}
@@ -26,10 +25,18 @@ jobs:
 
     - name: Make
       run: |
-        make SUFFIX=${TAG_SPECIFIC} test docker-build
+        make SUFFIX=${TAG_SPECIFIC} test manifest image-build
 
     - name: Push
       if: startsWith(github.ref, 'refs/tags/')
       run: |
         docker login -u epic-gateway+github_actions -p ${{ secrets.QUAY_EPIC_GATEWAY }} quay.io
-        make SUFFIX=${TAG_SPECIFIC} docker-push
+        make SUFFIX=${TAG_SPECIFIC} image-push
+
+    - name: Create a new pre-release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        files: |
+          deploy/web-service.yaml
